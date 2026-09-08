@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TextDungeon">
+  <rect width="512" height="512" rx="96" fill="#183f38"/>
+  <path d="M99 367c37-106 70-171 157-246 87 75 120 140 157 246-104-44-210-44-314 0Z" fill="#f6ecd1" stroke="#e6aa3b" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M256 116v273M166 327c58-19 122-19 180 0" fill="none" stroke="#6fc8b7" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="256" cy="211" r="28" fill="#e6aa3b"/>
+</svg>
