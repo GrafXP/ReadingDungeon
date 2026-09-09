@@ -16,6 +16,16 @@ export function evaluateRequirement(requirement: Requirement | undefined, save: 
         ? { met: true, missing: [] }
         : { met: false, missing: [`Gegenstand:${requirement.itemId}`] }
     }
+    case 'equipped': {
+      const equipped = requirement.slot === 'weapon'
+        ? save.player.equippedWeaponId
+        : requirement.slot === 'body'
+          ? save.player.equippedArmorId
+          : save.player.equippedTalismanId
+      return equipped === requirement.itemId && (save.player.inventory[requirement.itemId] ?? 0) > 0
+        ? { met: true, missing: [] }
+        : { met: false, missing: [`Ausrüstung:${requirement.itemId}`] }
+    }
     case 'flag':
       return save.flags.includes(requirement.flag)
         ? { met: true, missing: [] }
@@ -42,7 +52,7 @@ export function evaluateRequirement(requirement: Requirement | undefined, save: 
 
 export function requirementItemIds(requirement: Requirement | undefined): string[] {
   if (!requirement) return []
-  if (requirement.kind === 'item') return [requirement.itemId]
+  if (requirement.kind === 'item' || requirement.kind === 'equipped') return [requirement.itemId]
   if (requirement.kind === 'flag' || requirement.kind === 'clue') return []
   return requirement.requirements.flatMap(requirementItemIds)
 }

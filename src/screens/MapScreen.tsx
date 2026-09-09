@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
-import { phase2World } from '../content/world'
+import { activeWorld } from '../content/world'
 import { getMapAreaProgress } from '../engine/mapProgress'
 import { getReminderGroups } from '../engine/reminders'
 import { evaluateRequirement } from '../engine/requirements'
@@ -18,11 +18,11 @@ export function MapScreen() {
   const [searchParams] = useSearchParams()
   const requestedHint = searchParams.get('hinweis')
   const requestedTarget = searchParams.get('ziel')
-  const knownIds = new Set(game ? getKnownAreaIds(game, phase2World) : [])
+  const knownIds = new Set(game ? getKnownAreaIds(game, activeWorld) : [])
   const hintArea = game && game.discoveredClueIds.includes(`hinweis_ort:${requestedHint}`)
-    ? phase2World.areas.find((area) => area.id === requestedHint) : undefined
+    ? activeWorld.areas.find((area) => area.id === requestedHint) : undefined
   const targetArea = game && requestedTarget && knownIds.has(requestedTarget)
-    ? phase2World.areas.find((area) => area.id === requestedTarget) : undefined
+    ? activeWorld.areas.find((area) => area.id === requestedTarget) : undefined
   const focusedArea = targetArea ?? hintArea
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -48,7 +48,7 @@ export function MapScreen() {
   // The starting zoom only shows a section, so open the map centred on the current area.
   useEffect(() => {
     const viewport = viewportRef.current
-    const area = focusedArea ?? phase2World.areas.find((entry) => entry.id === game?.currentAreaId)
+    const area = focusedArea ?? activeWorld.areas.find((entry) => entry.id === game?.currentAreaId)
     if (!viewport || !area || !viewport.scrollWidth) return
     const scale = viewport.scrollWidth / MAP_VIEW_BOX.width
     viewport.scrollLeft = (area.mapPosition.x - MAP_VIEW_BOX.x) * scale - viewport.clientWidth / 2
@@ -57,11 +57,11 @@ export function MapScreen() {
 
   if (!game) return null
 
-  const knownAreas = phase2World.areas.filter((area) => knownIds.has(area.id))
-  const knownPassages = phase2World.passages.filter((passage) => knownIds.has(passage.fromAreaId) && knownIds.has(passage.toAreaId))
+  const knownAreas = activeWorld.areas.filter((area) => knownIds.has(area.id))
+  const knownPassages = activeWorld.passages.filter((passage) => knownIds.has(passage.fromAreaId) && knownIds.has(passage.toAreaId))
   const blockedPassages = knownPassages.filter((passage) => !evaluateRequirement(passage.requirement, game).met && !game.unlockedPassageIds.includes(passage.id))
-  const progressByArea = new Map(knownAreas.map((area) => [area.id, getMapAreaProgress(game, phase2World, area.id)]))
-  const reminderAreaIds = new Set(getReminderGroups(game).flatMap((group) => group.steps.filter((step) => step.status !== 'done' && step.areaId).map((step) => step.areaId!)))
+  const progressByArea = new Map(knownAreas.map((area) => [area.id, getMapAreaProgress(game, activeWorld, area.id)]))
+  const reminderAreaIds = new Set(getReminderGroups(game, activeWorld).flatMap((group) => group.steps.filter((step) => step.status !== 'done' && step.areaId).map((step) => step.areaId!)))
   const mapStats = {
     newAreas: [...progressByArea.values()].filter((progress) => progress.state === 'new').length,
     unfinished: [...progressByArea.values()].filter((progress) => progress.state === 'open' || progress.state === 'blocked').length,
@@ -72,7 +72,7 @@ export function MapScreen() {
     <main id="main-content" className="screen page-screen map-screen">
       <header className="page-heading">
         <p className="eyebrow">Deine Entdeckungen</p>
-        <h1>Karte von Talora</h1>
+        <h1>Karte von {activeWorld.presentation.fallbackPlaceName}</h1>
         <p>Sieh auf einen Blick, wo noch etwas offen ist, was dich aufhält und welche Orte du bereits erledigt hast.</p>
       </header>
 
@@ -83,10 +83,9 @@ export function MapScreen() {
         <div><strong>{mapStats.clear}</strong><span>derzeit erledigt</span></div>
       </section>
 
-      <p>{focusedArea ? 'Die Karte startet beim ausgewählten Ziel.' : 'Die Karte startet nah bei deinem aktuellen Ort.'} Mit «Ganze Karte» siehst du ganz Talora; die Schrift bleibt beim Zoomen gleich gross. Die Karte lässt sich in alle Richtungen verschieben. Alle offenen Dinge und Sperren stehen auch in der Textliste darunter.</p>
-      {hintArea && <p className="map-hint" role="status">Kunos Hinweis: Die Karte zeigt dir {hintArea.name}. Dieser Ort gilt erst als besucht, wenn du selbst dorthin reist.</p>}
+      <p>{focusedArea ? 'Die Karte startet beim ausgewählten Ziel.' : 'Die Karte startet nah bei deinem aktuellen Ort.'} Mit «Ganze Karte» siehst du die gesamte bekannte Welt; die Schrift bleibt beim Zoomen gleich gross. Die Karte lässt sich in alle Richtungen verschieben. Alle offenen Dinge und Sperren stehen auch in der Textliste darunter.</p>
+      {hintArea && <p className="map-hint" role="status">Hinweis: Die Karte zeigt dir {hintArea.name}. Dieser Ort gilt erst als besucht, wenn du selbst dorthin reist.</p>}
       {targetArea && <p className="map-target-note" role="status">Merklistenziel: {targetArea.name} ist auf der Karte hervorgehoben.</p>}
-      {game.flags.includes('kartennotiz_sichtbar') && <p>Alvas Notiz: «Eine gute Karte zeigt nicht nur, wohin du gehst. Sie zeigt auch, wer auf deine Rückkehr wartet.»</p>}
       <section className="world-map" aria-labelledby="visual-map-title">
         <h2 id="visual-map-title" className="visually-hidden">Grafische Karte</h2>
         <div className="map-zoom" role="group" aria-label="Kartenzoom">
@@ -97,7 +96,7 @@ export function MapScreen() {
         </div>
         <div className="map-viewport" ref={viewportRef} tabIndex={0} style={{ ['--map-zoom' as string]: zoom }}>
         <svg viewBox="20 45 960 730" role="img" aria-labelledby="map-title map-description">
-          <title id="map-title">Entdeckte Orte in ganz Talora</title>
+          <title id="map-title">Entdeckte Orte in {activeWorld.presentation.fallbackPlaceName}</title>
           <desc id="map-description">Die gleiche Verbindungsliste wie in der Reiseansicht, grafisch dargestellt.</desc>
           <path className="region-shape region-shape--forest" d="M35 190 Q210 120 345 245 L300 610 Q140 680 35 565Z" />
           <path className="region-shape region-shape--mark" d="M315 225 Q485 185 630 285 L575 480 Q430 505 310 410Z" />
@@ -105,8 +104,8 @@ export function MapScreen() {
           <path className="region-shape region-shape--coast" d="M535 395 Q765 360 970 430 L955 705 Q730 760 535 600Z" />
           <path className="region-shape region-shape--final" d="M455 470 L555 470 L580 775 L430 775Z" />
           {knownPassages.map((passage) => {
-            const from = phase2World.areas.find((area) => area.id === passage.fromAreaId)!
-            const to = phase2World.areas.find((area) => area.id === passage.toAreaId)!
+            const from = activeWorld.areas.find((area) => area.id === passage.fromAreaId)!
+            const to = activeWorld.areas.find((area) => area.id === passage.toAreaId)!
             const blocked = !evaluateRequirement(passage.requirement, game).met && !game.unlockedPassageIds.includes(passage.id)
             const middle = { x: (from.mapPosition.x + to.mapPosition.x) / 2, y: (from.mapPosition.y + to.mapPosition.y) / 2 }
             return (
@@ -156,13 +155,13 @@ export function MapScreen() {
         <h2 id="map-list-title">Entdeckte Orte und Wege</h2>
         <ul>
           {knownAreas.map((area) => {
-            const connections = getConnectedKnownAreas(game, phase2World, area.id)
+            const connections = getConnectedKnownAreas(game, activeWorld, area.id)
             const progress = progressByArea.get(area.id)!
             const statusLabel = progress.state === 'new' ? 'Noch nicht besucht' : progress.state === 'clear' ? 'Derzeit erledigt' : progress.state === 'blocked' ? `${progress.unfinishedCount} wartet` : `${progress.unfinishedCount} offen`
             return (
               <li key={area.id} className={`map-list-item map-list-item--${progress.state}`}>
                 <div><strong>{area.name}</strong><span className={`map-list-status map-list-status--${progress.state}`}>{game.currentAreaId === area.id ? 'Aktuell · ' : ''}{statusLabel}</span></div>
-                <p>{game.visitedAreaIds.includes(area.id) ? 'Besucht' : game.discoveredClueIds.includes(`hinweis_ort:${area.id}`) ? 'Bekannt durch Kunos Hinweis' : 'Bekannt'} · Wege nach {connections.map((entry) => entry.name).join(', ') || 'noch unbekannt'}</p>
+                <p>{game.visitedAreaIds.includes(area.id) ? 'Besucht' : game.discoveredClueIds.includes(`hinweis_ort:${area.id}`) ? 'Durch einen Hinweis bekannt' : 'Bekannt'} · Wege nach {connections.map((entry) => entry.name).join(', ') || 'noch unbekannt'}</p>
                 {progress.open.length > 0 && <p className="map-open-detail"><strong>Jetzt möglich:</strong> {progress.open.map((task) => task.label).join(' · ')}</p>}
                 {progress.blocked.map((task) => <p className="blocked-reason" key={task.label}><strong>Noch nötig für «{task.label}»:</strong> {task.detail}</p>)}
                 {progress.state === 'clear' && <p className="map-clear-detail">✓ Hier ist derzeit nichts mehr offen.</p>}

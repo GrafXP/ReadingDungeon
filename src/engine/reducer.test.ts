@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { phase2World } from '../content/world'
+import { getQuestViews } from '../content/world/campaignJournal'
 import { createNewGame, type GameSave } from '../domain/game'
 import type { GameAction } from './actions'
 import { getAvailableActions } from './actions'
 import { reduceGame } from './reducer'
-import { getKnownAreaIds, getQuestViews } from './selectors'
+import { getKnownAreaIds } from './selectors'
 
 function play(save: GameSave, ...actions: GameAction[]): GameSave {
   return actions.reduce((current, action) => reduceGame(current, action, phase2World), save)
@@ -12,7 +13,7 @@ function play(save: GameSave, ...actions: GameAction[]): GameSave {
 
 describe('Erkundungs-Reducer', () => {
   it('reist in beide Richtungen und entdeckt angrenzende Orte', () => {
-    const start = createNewGame('Mira')
+    const start = createNewGame('Mira', phase2World)
     const market = reduceGame(start, { type: 'MOVE', passageId: 'p02', toAreaId: 'alter_markt' }, phase2World)
 
     expect(market.currentAreaId).toBe('alter_markt')
@@ -28,7 +29,7 @@ describe('Erkundungs-Reducer', () => {
   })
 
   it('zeigt beim ersten Besuch nur Untersuchen und gibt danach alle Ortsaktionen frei', () => {
-    const start = createNewGame('Mira')
+    const start = createNewGame('Mira', phase2World)
 
     expect(getAvailableActions(start, phase2World)).toEqual([
       expect.objectContaining({ id: 'inspect:sonnenwacht', kind: 'inspect', disabled: false })
@@ -49,7 +50,7 @@ describe('Erkundungs-Reducer', () => {
 
   it('ändert bei einer gesperrten oder ungültigen Aktion weder Zustand noch Runde', () => {
     const atLibrary = play(
-      createNewGame('Noah'),
+      createNewGame('Noah', phase2World),
       { type: 'MOVE', passageId: 'p01', toAreaId: 'drei_wege_platz' },
       { type: 'MOVE', passageId: 'p10', toAreaId: 'kuestenpfad' },
       { type: 'MOVE', passageId: 'p24', toAreaId: 'muschelhafen' },
@@ -66,7 +67,7 @@ describe('Erkundungs-Reducer', () => {
 
   it('zeigt blockierte Aktionen samt konkretem Grund', () => {
     const atGarden = play(
-      createNewGame('Lina'),
+      createNewGame('Lina', phase2World),
       { type: 'MOVE', passageId: 'p02', toAreaId: 'alter_markt' },
       { type: 'MOVE', passageId: 'p04', toAreaId: 'garten_der_namen' },
       { type: 'INSPECT', areaId: 'garten_der_namen' }
@@ -79,7 +80,7 @@ describe('Erkundungs-Reducer', () => {
 
   it('spielt Schlüssel-, Werkzeug-, Truhen- und Abkürzungskette bis zum Ziel', () => {
     const finished = play(
-      createNewGame('Ari'),
+      createNewGame('Ari', phase2World),
       { type: 'MOVE', passageId: 'p02', toAreaId: 'alter_markt' },
       { type: 'TAKE_ITEM', interactionId: 'hebelstange_fund' },
       { type: 'OPEN_CHEST', interactionId: 'truhe_markt_interaktion' },
@@ -124,7 +125,7 @@ describe('Erkundungs-Reducer', () => {
 
   it('macht einmalige Funde nicht mehrfach verfügbar', () => {
     const atMarket = play(
-      createNewGame('Sam'),
+      createNewGame('Sam', phase2World),
       { type: 'MOVE', passageId: 'p02', toAreaId: 'alter_markt' },
       { type: 'OPEN_CHEST', interactionId: 'truhe_markt_interaktion' }
     )
@@ -135,7 +136,7 @@ describe('Erkundungs-Reducer', () => {
   })
 
   it('heilt atomar, verbraucht genau ein Mittel und heilt nie über das Maximum', () => {
-    const injured = createNewGame('Jo')
+    const injured = createNewGame('Jo', phase2World)
     injured.player.life = 17
 
     const healed = reduceGame(injured, { type: 'USE_ITEM', itemId: 'apfelbrot' }, phase2World)
@@ -158,7 +159,7 @@ describe('Erkundungs-Reducer', () => {
   })
 
   it('kann nur eine tatsächlich gefundene Waffe ausserhalb eines Kampfes ausrüsten', () => {
-    const start = createNewGame('Lou')
+    const start = createNewGame('Lou', phase2World)
     expect(reduceGame(start, { type: 'EQUIP_WEAPON', itemId: 'hafenspeer' }, phase2World)).toBe(start)
 
     const withSpear: GameSave = {
@@ -174,9 +175,9 @@ describe('Erkundungs-Reducer', () => {
     const inCombat: GameSave = {
       ...withSpear,
       activeCombat: {
-        encounterId: 'test', enemyLife: 4, enemyMaxLife: 4, phase: 1, announcedMoveId: 'angriff',
-        round: 1, enemyStance: 'normal', entryMode: 'normal', canFlee: true,
-        pendingSealItemId: null, placedSealItemIds: [], awaitingFinalPromise: false, effects: []
+        encounterId: 'test', combatants: [{ enemyId: 'test', life: 4, maxLife: 4, phase: 1, announcedMoveId: 'angriff', stance: 'normal', effects: [] }],
+        targetIndex: 0, round: 1, canFlee: true, playerEffects: [], skillCooldown: 0,
+        pendingSealItemId: null, placedSealItemIds: [], awaitingFinalAction: false
       }
     }
     expect(reduceGame(inCombat, { type: 'EQUIP_WEAPON', itemId: 'hafenspeer' }, phase2World)).toBe(inCombat)
@@ -184,7 +185,7 @@ describe('Erkundungs-Reducer', () => {
 
   it('vergibt auch den Inhalt der Hafentruhe nur einmal', () => {
     const atHarbor: GameSave = {
-      ...createNewGame('Feli'),
+      ...createNewGame('Feli', phase2World),
       currentAreaId: 'muschelhafen',
       visitedAreaIds: ['sonnenwacht', 'muschelhafen'],
       flags: ['schleusenrad_geborgen']
@@ -198,7 +199,7 @@ describe('Erkundungs-Reducer', () => {
   })
 
   it('erweckt die Morgenklinge über drei Gaben und verbraucht jede Gabe genau einmal', () => {
-    const initial = createNewGame('Tali')
+    const initial = createNewGame('Tali', phase2World)
     const atTemple: GameSave = {
       ...initial,
       currentAreaId: 'morgen_tempel',

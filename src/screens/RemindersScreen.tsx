@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
-import { phase2World } from '../content/world'
+import { activeWorld } from '../content/world'
 import { getKnownAreaIds } from '../engine/selectors'
 import { getReminderGroups, type ReminderStatus } from '../engine/reminders'
 
@@ -14,16 +14,16 @@ export function RemindersScreen() {
   const { game } = useAppState()
   if (!game) return null
 
-  const groups = getReminderGroups(game)
+  const groups = getReminderGroups(game, activeWorld)
   const steps = groups.flatMap((group) => group.steps)
   const missing = steps.filter((step) => step.status === 'missing').length
   const ready = steps.filter((step) => step.status === 'ready').length
-  const knownAreaIds = new Set(getKnownAreaIds(game, phase2World))
+  const knownAreaIds = new Set(getKnownAreaIds(game, activeWorld))
 
   return (
     <main id="main-content" className="screen page-screen reminders-screen">
       <header className="page-heading">
-        <p className="eyebrow">Kunos Gedächtnisstütze</p>
+        <p className="eyebrow">Deine Gedächtnisstütze</p>
         <h1>Merkliste</h1>
         <p>Hier stehen wichtige Dinge, Fundorte und ihr späterer Zweck. Die Liste ändert sich mit deiner Reise.</p>
       </header>
@@ -37,7 +37,7 @@ export function RemindersScreen() {
       {groups.length === 0 ? (
         <section className="reminder-empty">
           <span aria-hidden="true">✓</span>
-          <div><h2>Nichts mehr offen</h2><p>Kuno hat im Moment nichts mehr auf seiner Merkliste.</p></div>
+          <div><h2>Nichts mehr offen</h2><p>Im Moment steht nichts auf deiner Merkliste.</p></div>
         </section>
       ) : (
         <div className="reminder-groups">
@@ -49,7 +49,7 @@ export function RemindersScreen() {
               </header>
               <ul>
                 {group.steps.map((step) => {
-                  const area = step.areaId ? phase2World.areas.find((entry) => entry.id === step.areaId) : undefined
+                  const area = step.areaId ? activeWorld.areas.find((entry) => entry.id === step.areaId) : undefined
                   const canShowOnMap = Boolean(area && knownAreaIds.has(area.id))
                   return (
                     <li key={step.id} className={`reminder-step reminder-step--${step.status}`}>

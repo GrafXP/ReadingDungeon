@@ -22,7 +22,7 @@ export type GameAction =
   | { type: 'RESPAWN' }
   | { type: 'REST' }
   | { type: 'PLACE_SEAL'; itemId: string }
-  | { type: 'SPEAK_PROMISE' }
+  | { type: 'COMPLETE_FINAL_ACTION' }
 
 export interface AvailableAction {
   id: string
@@ -50,8 +50,7 @@ export function otherEnd(passage: PassageDefinition, areaId: string): string | n
 }
 
 export function isInteractionComplete(interaction: InteractionDefinition, save: GameSave): boolean {
-  if (interaction.id === 'tessa_kartenstift' && (save.player.inventory.kartenstift ?? 0) > 0) return true
-  if (interaction.id === 'morgenklinge_ziehen' && ((save.player.inventory.morgenklinge ?? 0) > 0 || save.flags.includes('morgenklinge_erweckt'))) return true
+  if (interaction.completedWhen && evaluateRequirement(interaction.completedWhen, save).met) return true
   if (interaction.chestId) return save.openedChestIds.includes(interaction.chestId)
   return save.flags.includes(`interaktion:${interaction.id}`)
 }
@@ -85,12 +84,17 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
   if (!inspected) return actions
 
   if (area.safe && evaluateRequirement(area.sanctuaryRequirement, save).met) {
-    const fullyRested = save.player.life === save.player.maxLife && (save.player.inventory.apfelbrot ?? 0) >= 3 && save.lastSanctuaryId === area.id
+    const restocks = world.start.sanctuaryRestocks ?? []
+    const fullyStocked = restocks.every((restock) => (save.player.inventory[restock.itemId] ?? 0) >= restock.quantity)
+    const fullyRested = save.player.life === save.player.maxLife && fullyStocked && save.lastSanctuaryId === area.id
+    const restockText = restocks.length > 0
+      ? restocks.map((restock) => `${world.items.find((item) => item.id === restock.itemId)?.name ?? restock.itemId} auf ${restock.quantity}`).join(', ')
+      : 'deine Reisevorbereitung'
     actions.push({
       id: `rest:${area.id}`,
       kind: 'interaction',
       label: fullyRested ? 'Rastplatz prüfen' : 'Raste und fülle Vorräte auf',
-      description: fullyRested ? 'Du bist ausgeruht und hast genug Apfelbrot.' : 'Heilt vollständig und ergänzt Apfelbrot auf drei Stück.',
+      description: fullyRested ? 'Du bist ausgeruht und vollständig vorbereitet.' : `Heilt vollständig und ergänzt ${restockText}.`,
       icon: '⌂',
       disabled: fullyRested,
       blockedReason: fullyRested ? 'Du bist bereits vollständig vorbereitet.' : undefined,
@@ -116,40 +120,21 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
     })
   }
 
-  const adjacentAreaIds = world.passages
-    .map((passage) => otherEnd(passage, area.id))
-    .filter((id): id is string => id !== null)
-  const bossNearby = world.encounters.some((encounter) => {
-    const enemy = world.enemies.find((entry) => entry.id === encounter.enemyId)
-    return (encounter.areaId === area.id || adjacentAreaIds.includes(encounter.areaId)) &&
-      enemy?.kind === 'boss' && !save.defeatedEncounterIds.includes(encounter.id)
-  })
-  if (bossNearby && (save.player.inventory.morgenklinge ?? 0) > 0 && save.player.equippedWeaponId !== 'morgenklinge') {
-    actions.push({
-      id: 'equip:morgenklinge',
-      kind: 'interaction',
-      label: 'Rüste die Morgenklinge aus',
-      description: 'Nur ihr Licht kann den schwarzen Schattenpanzer eines Wächters durchdringen.',
-      icon: '⚔',
-      disabled: false,
-      gameAction: { type: 'EQUIP_WEAPON', itemId: 'morgenklinge' }
-    })
-  }
-
   for (const encounter of world.encounters.filter((entry) => entry.areaId === area.id)) {
     if (save.defeatedEncounterIds.includes(encounter.id)) continue
-    const enemy = world.enemies.find((entry) => entry.id === encounter.enemyId)
-    const missingSeals = Boolean(enemy?.phaseSealItemIds && Object.values(enemy.phaseSealItemIds).some((id) => (save.player.inventory[id] ?? 0) < 1))
+    const enemies = encounter.enemyIds.map((id) => world.enemies.find((entry) => entry.id === id)).filter((enemy): enemy is NonNullable<typeof enemy> => Boolean(enemy))
+    const missingSeals = enemies.some((enemy) => Boolean(enemy.phaseSealItemIds && Object.values(enemy.phaseSealItemIds).some((id) => (save.player.inventory[id] ?? 0) < 1)))
     const weapon = world.items.find((item) => item.id === save.player.equippedWeaponId && item.weapon)
     const missingWeapon = !weapon || (save.player.inventory[weapon.id] ?? 0) < 1
+    const gearReady = evaluateRequirement(encounter.requiredGear, save).met
     actions.push({
       id: `combat:${encounter.id}`,
       kind: 'combat',
       label: encounter.label,
       description: encounter.description,
       icon: '⚔',
-      disabled: missingSeals || missingWeapon,
-      blockedReason: missingWeapon ? 'Rüste zuerst im Inventar eine Waffe aus.' : missingSeals ? 'Für die Verbannung brauchst du alle drei Wächtersiegel.' : undefined,
+      disabled: missingSeals || missingWeapon || !gearReady,
+      blockedReason: missingWeapon ? 'Rüste zuerst im Inventar eine Waffe aus.' : missingSeals ? 'Für diese Begegnung fehlen wichtige Gegenstände.' : !gearReady ? encounter.gearWarning ?? 'Rüste zuerst den passenden Schutz aus.' : undefined,
       gameAction: { type: 'START_COMBAT', encounterId: encounter.id }
     })
   }
@@ -159,6 +144,7 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
     if (!destinationId) continue
     const requirement = evaluateRequirement(passage.requirement, save)
     const manuallyUnlocked = save.unlockedPassageIds.includes(passage.id)
+    const guardDefeated = !passage.guardEncounterId || save.defeatedEncounterIds.includes(passage.guardEncounterId)
     const destination = world.areas.find((entry) => entry.id === destinationId)
     actions.push({
       id: `move:${passage.id}`,
@@ -166,8 +152,8 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
       label: passage.fromAreaId === area.id ? passage.labelFrom : passage.labelTo,
       description: passage.shortcut ? `Abkürzung nach ${destination?.name ?? destinationId}` : destination?.regionName ?? 'Weiterreisen',
       icon: passage.shortcut ? '↯' : '➜',
-      disabled: !requirement.met && !manuallyUnlocked,
-      blockedReason: requirement.met || manuallyUnlocked ? undefined : passage.blockedText ?? 'Dieser Weg ist noch versperrt.',
+      disabled: (!requirement.met && !manuallyUnlocked) || !guardDefeated,
+      blockedReason: (requirement.met || manuallyUnlocked) && guardDefeated ? undefined : passage.blockedText ?? 'Dieser Weg ist noch versperrt.',
       gameAction: { type: 'MOVE', passageId: passage.id, toAreaId: destinationId }
     })
   }
@@ -178,13 +164,6 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
 export function getInventoryActions(save: GameSave, item: ItemDefinition): InventoryAction[] {
   const owned = (save.player.inventory[item.id] ?? 0) > 0
   if (!owned) return []
-  if (['glasauge', 'kartenstift', 'muschelhorn'].includes(item.id)) {
-    const wrongPlace = item.id === 'muschelhorn' && !['muschelhafen', 'perlenbecken'].includes(save.currentAreaId)
-    return [{ id: `tool:${item.id}`, label: 'Benutzen', disabled: Boolean(save.activeCombat) || wrongPlace,
-      reason: save.activeCombat ? 'Benutze das Werkzeug nach dem Kampf.' : wrongPlace ? 'Rufe Marea im Muschelhafen oder Perlenbecken.' : undefined,
-      gameAction: { type: 'USE_TOOL', itemId: item.id } }]
-  }
-
   if (item.kind === 'weapon' && item.weapon) {
     const inCombat = save.activeCombat !== null
     const equipped = save.player.equippedWeaponId === item.id
@@ -199,8 +178,9 @@ export function getInventoryActions(save: GameSave, item: ItemDefinition): Inven
 
   if (item.kind === 'healing' && item.healing) {
     const fullLife = save.player.life >= save.player.maxLife
-    const effectCanBePrepared = save.activeCombat !== null && (Boolean(item.healing.combatEffect) || (item.id === 'quellwasser' && save.activeCombat.effects.some((effect) => effect.id === 'grauschleier')))
-    const combatPaused = save.player.life === 0 || Boolean(save.activeCombat?.pendingSealItemId || save.activeCombat?.awaitingFinalPromise)
+    const clearIds = item.healing.clearsEffectIds ?? []
+    const effectCanBePrepared = save.activeCombat !== null && (Boolean(item.healing.combatEffect) || save.activeCombat.playerEffects.some((effect) => clearIds.includes(effect.id)))
+    const combatPaused = save.player.life === 0 || Boolean(save.activeCombat?.pendingSealItemId || save.activeCombat?.awaitingFinalAction)
     return [{
       id: `use:${item.id}`,
       label: 'Benutzen',

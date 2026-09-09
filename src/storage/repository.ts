@@ -1,8 +1,12 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { GameSave } from '../domain/game'
+import type { WorldDefinition } from '../domain/content'
+import { kantaraWorld } from '../content/world/kantaraWorld'
 import type { AppSettings } from '../domain/settings'
 import {
   migrateAndValidateGameSave,
+  CampaignMismatchError,
+  createQuarantinedSaveExport,
   settingsOrDefaults,
   validateSettings
 } from './validation'
@@ -32,6 +36,7 @@ export type LoadResult<T> =
   | { status: 'empty' }
   | { status: 'ready'; value: T; updatedAt: string }
   | { status: 'invalid'; error: Error }
+  | { status: 'incompatible'; error: CampaignMismatchError; exportJson: string }
   | { status: 'error'; error: Error }
 
 function asError(value: unknown, fallback: string): Error {
@@ -42,7 +47,7 @@ export class GameRepository {
   private readonly dbPromise: Promise<IDBPDatabase<ReadingDungeonDatabase>>
   private writeQueue: Promise<unknown> = Promise.resolve()
 
-  constructor(databaseName = 'readingdungeon') {
+  constructor(databaseName = 'readingdungeon', private readonly world: WorldDefinition = kantaraWorld) {
     this.dbPromise = openDB<ReadingDungeonDatabase>(databaseName, DATABASE_VERSION, {
       upgrade(database) {
         if (!database.objectStoreNames.contains('adventures')) {
@@ -70,10 +75,13 @@ export class GameRepository {
       try {
         return {
           status: 'ready',
-          value: migrateAndValidateGameSave(stored.value),
+          value: migrateAndValidateGameSave(stored.value, this.world),
           updatedAt: stored.updatedAt
         }
       } catch (error) {
+        if (error instanceof CampaignMismatchError) {
+          return { status: 'incompatible', error, exportJson: createQuarantinedSaveExport(stored.value) }
+        }
         return { status: 'invalid', error: asError(error, 'Der Spielstand ist beschädigt.') }
       }
     } catch (error) {
@@ -82,7 +90,7 @@ export class GameRepository {
   }
 
   saveAdventure(save: GameSave): Promise<void> {
-    const validated = migrateAndValidateGameSave(save)
+    const validated = migrateAndValidateGameSave(save, this.world)
     return this.enqueue(async () => {
       const database = await this.dbPromise
       await database.put('adventures', {

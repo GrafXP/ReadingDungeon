@@ -23,15 +23,16 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
     return <p className="inline-error">Dieser Kampf kann nicht geladen werden. Kehre über die Einstellungen zu einem früheren Spielstand zurück.</p>
   }
   const combat = game.activeCombat
-  const enemyPercent = Math.round((combat.enemyLife / combat.enemyMaxLife) * 100)
+  const combatant = view.combatant
+  const enemyPercent = Math.round((combatant.life / combatant.maxLife) * 100)
   const playerPercent = Math.round((game.player.life / game.player.maxLife) * 100)
 
   if (game.player.life === 0) {
     return (
       <section className="combat-panel combat-panel--defeat" aria-labelledby="combat-title">
         <p className="eyebrow">Rettung</p>
-        <h2 id="combat-title" ref={headingRef} tabIndex={-1}>Kuno holt Hilfe</h2>
-        <p>Du bist erschöpft, aber nichts aus deinem Inventar oder deinen Entdeckungen geht bei der Rettung verloren. Bereits benutzte Heilmittel bleiben verbraucht; am Rastplatz bekommst du frisches Apfelbrot.</p>
+        <h2 id="combat-title" ref={headingRef} tabIndex={-1}>Hilfe ist unterwegs</h2>
+        <p>Du bist erschöpft, aber nichts aus deinem Inventar oder deinen Entdeckungen geht bei der Rettung verloren. Bereits benutzte Heilmittel bleiben verbraucht; am Rastplatz wird dein Grundvorrat ergänzt.</p>
         <button className="button button--primary combat-rescue" onClick={() => onAction({ type: 'RESPAWN' })}>
           Zum letzten sicheren Ort
         </button>
@@ -43,35 +44,28 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
     <section className="combat-panel" aria-labelledby="combat-title">
       <header className="combat-heading">
         <div>
-          <p className="eyebrow">{view.enemy.kind === 'boss' ? `Boss · Phase ${combat.phase}` : `Kampf · Runde ${combat.round}`}</p>
+          <p className="eyebrow">{view.enemy.kind === 'boss' ? `Boss · Phase ${combatant.phase}` : `Kampf · Runde ${combat.round}`}</p>
           <h2 id="combat-title" ref={headingRef} tabIndex={-1}>{view.enemy.name}</h2>
         </div>
-        <span className={`combat-stance combat-stance--${combat.enemyStance}`}>
-          {combat.enemyStance === 'vulnerable'
+        <span className={`combat-stance combat-stance--${combatant.stance}`}>
+          {combatant.stance === 'vulnerable'
             ? view.enemy.kind === 'boss' ? 'Riss offen' : 'Ungeschützt'
-            : view.enemy.airborne ? 'In der Luft – unerreichbar' : combat.enemyStance === 'guarded' ? 'Geschützt' : 'Bereit'}
+            : view.enemy.airborne ? 'In der Luft – unerreichbar' : combatant.stance === 'guarded' ? 'Geschützt' : 'Bereit'}
         </span>
       </header>
 
-      {combat.entryMode === 'early-boss' && (
-        <div className="boss-warning" role="note">
-          <strong>Deine Waffe reicht nicht aus.</strong>
-          <p>Der Grauschleier lässt nur die ausgerüstete Morgenklinge hindurch. Der Rückweg bleibt garantiert offen.</p>
-        </div>
-      )}
-
       {combat.placedSealItemIds.length > 0 && (
-        <p className="seal-progress" aria-label={`${combat.placedSealItemIds.length} von 3 Siegellichtern gesetzt`}>
+        <p className="seal-progress" aria-label={`${combat.placedSealItemIds.length} von ${Object.keys(view.enemy.phaseSealItemIds ?? {}).length} Phasenzeichen gesetzt`}>
           Siegellichter: {combat.placedSealItemIds.map((id) => world.items.find((item) => item.id === id)?.name ?? id).join(' · ')}
         </p>
       )}
 
-      {combat.effects.length > 0 && <p className="combat-effects">{combat.effects.map((effect) => `${effect.id === 'blitzschutz' ? 'Blitzschutz' : effect.id === 'grauschleier' ? 'Grauschleier: Angriff −1' : 'Trefferfenster: Schaden +2'} (${effect.remainingEnemyTurns})`).join(' · ')}</p>}
+      {[...combat.playerEffects, ...combatant.effects].length > 0 && <p className="combat-effects">{[...combat.playerEffects, ...combatant.effects].map((effect) => `${world.statusEffects?.find((entry) => entry.id === effect.id)?.name ?? effect.id} (${effect.remainingEnemyTurns})`).join(' · ')}</p>}
 
       <div className="combat-health">
         <div>
-          <span><strong>{view.enemy.name}</strong><b>{combat.enemyLife}/{combat.enemyMaxLife}</b></span>
-          <progress aria-label={`${view.enemy.name}: ${combat.enemyLife} von ${combat.enemyMaxLife} Leben`} max={combat.enemyMaxLife} value={combat.enemyLife} />
+          <span><strong>{view.enemy.name}</strong><b>{combatant.life}/{combatant.maxLife}</b></span>
+          <progress aria-label={`${view.enemy.name}: ${combatant.life} von ${combatant.maxLife} Leben`} max={combatant.maxLife} value={combatant.life} />
           <small>{enemyPercent}% Leben</small>
         </div>
         <div>
@@ -81,7 +75,7 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
         </div>
       </div>
 
-      {!combat.pendingSealItemId && !combat.awaitingFinalPromise && (
+      {!combat.pendingSealItemId && !combat.awaitingFinalAction && (
         <article className={`enemy-intent enemy-intent--${view.move.kind}`} aria-live="polite" aria-atomic="true">
           <span aria-hidden="true">{view.move.icon}</span>
           <div>
@@ -99,12 +93,11 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
             Setze das {world.items.find((item) => item.id === combat.pendingSealItemId)?.name ?? 'Siegel'}
           </button>
         </div>
-      ) : combat.awaitingFinalPromise ? (
+      ) : combat.awaitingFinalAction ? (
         <div className="final-action" role="status">
-          <p>Alle drei Siegellichter leuchten. Die Morgenklinge wartet über dem Bannschloss.</p>
-          <p>«Finde den Weg. Kehre zurück. Geh nicht allein.»</p>
-          <button className="button button--primary" onClick={() => onAction({ type: 'SPEAK_PROMISE' })}>
-            Sprich Alvas Versprechen
+          <p>{view.enemy.finalAction?.prompt ?? 'Die letzte sichere Aktion ist bereit.'}</p>
+          <button className="button button--primary" onClick={() => onAction({ type: 'COMPLETE_FINAL_ACTION' })}>
+            {view.enemy.finalAction?.label ?? 'Kampf abschliessen'}
           </button>
         </div>
       ) : <div className="combat-actions" aria-label="Kampfaktionen">
@@ -123,7 +116,7 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
           onClick={() => combat.canFlee && onAction({ type: 'FLEE' })}
         >
           <span aria-hidden="true">↩</span>
-          <strong>{combat.entryMode === 'early-boss' ? 'Zieh dich zurück, solange du den Weg kennst' : 'Fliehen'}</strong>
+          <strong>Fliehen</strong>
           <small>{combat.canFlee ? 'Kampf verlassen' : 'Nach dem ersten Treffer ist der Rückweg geschlossen'}</small>
         </button>
       </div>}

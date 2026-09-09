@@ -46,14 +46,15 @@ export function getMapAreaProgress(save: GameSave, world: WorldDefinition, areaI
   }
 
   for (const encounter of world.encounters.filter((entry) => entry.areaId === areaId && !save.defeatedEncounterIds.includes(entry.id))) {
-    const enemy = world.enemies.find((entry) => entry.id === encounter.enemyId)
+    const enemies = encounter.enemyIds.map((id) => world.enemies.find((entry) => entry.id === id)).filter((enemy): enemy is NonNullable<typeof enemy> => Boolean(enemy))
     const weapon = world.items.find((item) => item.id === save.player.equippedWeaponId && item.weapon)
     const missingWeapon = !weapon || (save.player.inventory[weapon.id] ?? 0) < 1
-    const missingSeals = Boolean(enemy?.phaseSealItemIds && Object.values(enemy.phaseSealItemIds).some((id) => (save.player.inventory[id] ?? 0) < 1))
-    if (missingWeapon || missingSeals) {
+    const missingSeals = enemies.some((enemy) => Boolean(enemy.phaseSealItemIds && Object.values(enemy.phaseSealItemIds).some((id) => (save.player.inventory[id] ?? 0) < 1)))
+    const missingGear = !evaluateRequirement(encounter.requiredGear, save).met
+    if (missingWeapon || missingSeals || missingGear) {
       blocked.push({
         label: encounter.label,
-        detail: missingWeapon ? 'Rüste zuerst eine Waffe aus.' : 'Für diesen Kampf brauchst du alle drei Wächtersiegel.'
+        detail: missingWeapon ? 'Rüste zuerst eine Waffe aus.' : missingGear ? encounter.gearWarning ?? 'Rüste zuerst den passenden Schutz aus.' : 'Für diesen Kampf fehlen wichtige Gegenstände.'
       })
     } else {
       open.push({ label: encounter.label, detail: encounter.description })

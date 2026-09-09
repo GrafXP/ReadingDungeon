@@ -6,10 +6,11 @@ import { AppStateProvider } from '../app/AppState'
 import { TitleScreen } from './TitleScreen'
 import { gameRepository } from '../storage/repository'
 import { createNewGame } from '../domain/game'
+import { activeWorld } from '../content/world'
 
 describe('Startansicht', () => {
   it('zeigt nach einem fehlgeschlagenen Neustart den ungespeicherten neuen Lauf statt einer erneuten Löschfrage', async () => {
-    await gameRepository.saveAdventure(createNewGame('Alt'))
+    await gameRepository.saveAdventure(createNewGame('Alt', activeWorld))
     const user = userEvent.setup()
     render(<MemoryRouter><AppStateProvider><TitleScreen /></AppStateProvider></MemoryRouter>)
     await user.click(await screen.findByRole('button', { name: 'Neues Abenteuer' }))
@@ -35,6 +36,6 @@ describe('Startansicht', () => {
     await user.click(screen.getByRole('button', { name: 'Abenteuer starten' }))
 
     await waitFor(() => expect(screen.getByRole('link', { name: /Abenteuer fortsetzen/ })).toBeInTheDocument())
-    expect(screen.getByText(/Mira · Sonnenwacht/)).toBeInTheDocument()
+    expect(screen.getByText(/Mira · Kurierhof/)).toBeInTheDocument()
   })
 })

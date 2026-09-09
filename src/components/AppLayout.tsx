@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
-import { phase2World } from '../content/world'
+import { activeWorld } from '../content/world'
 
 function navClass({ isActive }: { isActive: boolean }) {
   return isActive ? 'nav-link nav-link--active' : 'nav-link'
@@ -20,7 +20,7 @@ export function AppLayout() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [pathname, game?.currentAreaId])
   const weaponName = game?.player.equippedWeaponId
-    ? phase2World.items.find((item) => item.id === game.player.equippedWeaponId)?.name ?? 'Unbekannt'
+    ? activeWorld.items.find((item) => item.id === game.player.equippedWeaponId)?.name ?? 'Unbekannt'
     : 'Keine Waffe'
 
   // The pinned header grows with the text size setting; its height is published as a

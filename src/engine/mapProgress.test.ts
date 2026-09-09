@@ -5,7 +5,7 @@ import { getMapAreaProgress } from './mapProgress'
 
 describe('map progress', () => {
   it('distinguishes unexplored, unfinished and clear locations', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', campaignWorld)
 
     expect(getMapAreaProgress(save, campaignWorld, 'alter_markt').state).toBe('new')
     expect(getMapAreaProgress(save, campaignWorld, 'sonnenwacht')).toMatchObject({
@@ -22,7 +22,7 @@ describe('map progress', () => {
   })
 
   it('keeps the reason for a visited location that is waiting on an item', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', campaignWorld)
     save.visitedAreaIds.push('tor_der_sechs_zeichen')
     save.flags.push('area_untersucht:tor_der_sechs_zeichen')
 

@@ -1,9 +1,12 @@
-export const SAVE_SCHEMA_VERSION = 5
-export const CONTENT_VERSION = 5
+import type { DamageType, WorldDefinition } from './content'
+
+export const SAVE_SCHEMA_VERSION = 6
+export const CONTENT_VERSION = 6
 
 /** Upper bound so a very long run cannot grow the save without limit. */
 export const JOURNAL_LIMIT = 1000
 
+export type CampaignId = string
 export type AreaId = string
 export type ItemId = string
 export type ChestId = string
@@ -20,23 +23,32 @@ export interface PuzzleState {
   values: Record<string, string | number | boolean>
 }
 
-export interface CombatState {
-  encounterId: EncounterId
-  enemyLife: number
-  enemyMaxLife: number
+export interface ActiveEffect {
+  id: string
+  remainingEnemyTurns: number
+}
+
+export interface Combatant {
+  enemyId: string
+  life: number
+  maxLife: number
   phase: number
   announcedMoveId: string
+  stance: 'normal' | 'guarded' | 'vulnerable'
+  effects: ActiveEffect[]
+}
+
+export interface CombatState {
+  encounterId: EncounterId
+  combatants: Combatant[]
+  targetIndex: number
   round: number
-  enemyStance: 'normal' | 'guarded' | 'vulnerable'
-  entryMode: 'normal' | 'early-boss' | 'prepared-boss'
   canFlee: boolean
+  playerEffects: ActiveEffect[]
+  skillCooldown: number
   pendingSealItemId: ItemId | null
   placedSealItemIds: ItemId[]
-  awaitingFinalPromise: boolean
-  effects: Array<{
-    id: string
-    remainingEnemyTurns: number
-  }>
+  awaitingFinalAction: boolean
 }
 
 export interface GameEvent {
@@ -48,6 +60,7 @@ export interface GameEvent {
 export interface GameSave {
   schemaVersion: number
   contentVersion: number
+  campaignId: CampaignId
   runId: string
   playerName: string
   currentAreaId: AreaId
@@ -56,6 +69,9 @@ export interface GameSave {
     life: number
     maxLife: number
     equippedWeaponId: ItemId | null
+    equippedArmorId: ItemId | null
+    equippedTalismanId: ItemId | null
+    weaponElementModes: Partial<Record<ItemId, DamageType>>
     inventory: Record<ItemId, number>
   }
   visitedAreaIds: AreaId[]
@@ -65,6 +81,8 @@ export interface GameSave {
   completedQuestSteps: QuestStepId[]
   discoveredClueIds: ClueId[]
   deliveredDialogueIds: DialogueId[]
+  studiedEnemyIds: string[]
+  metEnemyIds: string[]
   puzzleStates: Record<PuzzleId, PuzzleState>
   flags: GameFlag[]
   lastSanctuaryId: AreaId
@@ -81,37 +99,47 @@ function newRunId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `run-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-export function createNewGame(playerName: string): GameSave {
+function startText(template: string, playerName: string): string {
+  return template.replaceAll('{playerName}', playerName)
+}
+
+export function createNewGame(playerName: string, world: WorldDefinition): GameSave {
   const name = playerName.trim() || 'Abenteurerin'
-  const firstEvent: GameEvent = { id: 'adventure-started', text: `${name}, Tessa gibt dir ein Reiseschwert, eine Laterne und drei Apfelbrote. «Die Wachen schützen die Menschen hier. Du kennst unsere Karten und kannst Kuno hören. Schau mit ihm im Tempel am Drei-Wege-Platz nach. Wenn eine Gefahr zu gross ist, kehrst du zu mir zurück.»`, turn: 0 }
+  const firstEvent: GameEvent = {
+    id: 'adventure-started',
+    text: startText(world.start.eventText, name),
+    turn: 0
+  }
 
   return {
     schemaVersion: SAVE_SCHEMA_VERSION,
     contentVersion: CONTENT_VERSION,
+    campaignId: world.campaignId,
     runId: newRunId(),
     playerName: name,
-    currentAreaId: 'sonnenwacht',
+    currentAreaId: world.start.areaId,
     previousAreaId: null,
     player: {
-      life: 20,
-      maxLife: 20,
-      equippedWeaponId: 'reiseschwert',
-      inventory: {
-        reiseschwert: 1,
-        laterne: 1,
-        apfelbrot: 3
-      }
+      life: world.start.maxLife,
+      maxLife: world.start.maxLife,
+      equippedWeaponId: world.start.equippedWeaponId,
+      equippedArmorId: world.start.equippedArmorId,
+      equippedTalismanId: world.start.equippedTalismanId,
+      weaponElementModes: { ...world.start.weaponElementModes },
+      inventory: { ...world.start.inventory }
     },
-    visitedAreaIds: ['sonnenwacht'],
+    visitedAreaIds: [world.start.areaId],
     openedChestIds: [],
     defeatedEncounterIds: [],
     unlockedPassageIds: [],
     completedQuestSteps: [],
     discoveredClueIds: [],
     deliveredDialogueIds: [],
+    studiedEnemyIds: [],
+    metEnemyIds: [],
     puzzleStates: {},
     flags: [],
-    lastSanctuaryId: 'sonnenwacht',
+    lastSanctuaryId: world.start.areaId,
     activeCombat: null,
     recentEvents: [firstEvent],
     journal: [firstEvent],

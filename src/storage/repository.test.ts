@@ -2,11 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createNewGame } from '../domain/game'
 import { DEFAULT_SETTINGS } from '../domain/settings'
 import { GameRepository } from './repository'
+import { campaignWorld } from '../content/world/campaignWorld'
 
 const repositories: GameRepository[] = []
 
 function repository() {
-  const value = new GameRepository(`textdungeon-test-${crypto.randomUUID()}`)
+  const value = new GameRepository(`textdungeon-test-${crypto.randomUUID()}`, campaignWorld)
   repositories.push(value)
   return value
 }
@@ -18,7 +19,7 @@ afterEach(async () => {
 describe('GameRepository', () => {
   it('trennt Abenteuer und Einstellungen', async () => {
     const repo = repository()
-    const save = createNewGame('Nia')
+    const save = createNewGame('Nia', campaignWorld)
     await repo.saveAdventure(save)
     await repo.saveSettings({ ...DEFAULT_SETTINGS, highContrast: true })
 
@@ -32,7 +33,7 @@ describe('GameRepository', () => {
 
   it('ordnet schnelle Schreibvorgänge und behält den neuesten Zustand', async () => {
     const repo = repository()
-    const first = createNewGame('Erster')
+    const first = createNewGame('Erster', campaignWorld)
     const second = { ...first, playerName: 'Zweiter', turn: 1 }
 
     await Promise.all([repo.saveAdventure(first), repo.saveAdventure(second)])
@@ -44,7 +45,7 @@ describe('GameRepository', () => {
 
   it('löscht nur das Abenteuer', async () => {
     const repo = repository()
-    await repo.saveAdventure(createNewGame('Ari'))
+    await repo.saveAdventure(createNewGame('Ari', campaignWorld))
     await repo.saveSettings({ ...DEFAULT_SETTINGS, reducedMotion: true })
 
     await repo.deleteAdventure()

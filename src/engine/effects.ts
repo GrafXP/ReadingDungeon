@@ -1,11 +1,11 @@
-import type { InteractionEffect } from '../domain/content'
+import type { InteractionEffect, WorldDefinition } from '../domain/content'
 import type { GameSave } from '../domain/game'
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)]
 }
 
-export function applyEffect(save: GameSave, effect: InteractionEffect): GameSave {
+export function applyEffect(save: GameSave, effect: InteractionEffect, world: WorldDefinition): GameSave {
   switch (effect.kind) {
     case 'addItem':
       return {
@@ -25,9 +25,11 @@ export function applyEffect(save: GameSave, effect: InteractionEffect): GameSave
       if (remaining === 0) delete inventory[effect.itemId]
       else inventory[effect.itemId] = remaining
       const equippedWeaponId = remaining === 0 && save.player.equippedWeaponId === effect.itemId
-        ? (inventory.reiseschwert ?? 0) > 0 ? 'reiseschwert' : null
+        ? world.start.equippedWeaponId && (inventory[world.start.equippedWeaponId] ?? 0) > 0 ? world.start.equippedWeaponId : null
         : save.player.equippedWeaponId
-      return { ...save, player: { ...save.player, inventory, equippedWeaponId } }
+      const equippedArmorId = remaining === 0 && save.player.equippedArmorId === effect.itemId ? null : save.player.equippedArmorId
+      const equippedTalismanId = remaining === 0 && save.player.equippedTalismanId === effect.itemId ? null : save.player.equippedTalismanId
+      return { ...save, player: { ...save.player, inventory, equippedWeaponId, equippedArmorId, equippedTalismanId } }
     }
     case 'setFlag':
       return { ...save, flags: unique([...save.flags, effect.flag]) }

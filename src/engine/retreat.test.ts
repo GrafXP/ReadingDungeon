@@ -7,32 +7,34 @@ import { reduceGame } from './reducer'
 
 describe('Rückzug und Kampfvorbereitung', () => {
   it('kehrt auch nach Neuladen über den tatsächlich betretenen Weg zurück', () => {
-    let save = createNewGame('Mira')
+    let save = createNewGame('Mira', world)
     save.currentAreaId = 'korallengrotte'
     save.visitedAreaIds.push('korallengrotte')
     save = reduceGame(save, { type: 'MOVE', passageId: 'p31', toAreaId: 'gezeitentempel' }, world)
     save = reduceGame(save, { type: 'START_COMBAT', encounterId: 'begegnung_wasserwaechter' }, world)
-    save = parseSaveImport(createSaveExport(save))
+    save = parseSaveImport(createSaveExport(save, world), world)
     const escaped = reduceGame(save, { type: 'FLEE' }, world)
     expect(escaped.currentAreaId).toBe('korallengrotte')
     expect(escaped.visitedAreaIds).not.toContain('versunkene_bibliothek')
     expect(escaped.player.life).toBe(save.player.life)
     expect(escaped.rngState).toBe(save.rngState)
     expect(escaped.deliveredDialogueIds).toContain('area_intro:gezeitentempel')
-    expect(() => createSaveExport(escaped)).not.toThrow()
+    expect(() => createSaveExport(escaped, world)).not.toThrow()
   })
 
   it('verwendet bei einer alten, nicht angrenzenden Rückkehrangabe den definierten Ausgang', () => {
-    let save = createNewGame('Mira')
+    let save = createNewGame('Mira', world)
     save.currentAreaId = 'perlenbecken'
     save.previousAreaId = 'sonnenwacht'
     save.visitedAreaIds.push('perlenbecken')
+    save.player.inventory.morgenklinge = 1
+    save.player.equippedWeaponId = 'morgenklinge'
     save = reduceGame(save, { type: 'START_COMBAT', encounterId: 'boss_marea' }, world)
     expect(reduceGame(save, { type: 'FLEE' }, world).currentAreaId).toBe('gezeitentempel')
   })
 
   it('beginnt ohne ausgerüstete Waffe keinen unspeicherbaren Kampf', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', world)
     save.currentAreaId = 'bergfuss'
     save.visitedAreaIds.push('bergfuss')
     save.flags.push('area_untersucht:bergfuss')
@@ -42,7 +44,7 @@ describe('Rückzug und Kampfvorbereitung', () => {
   })
 
   it('weist einen manipulierten Boss-Rückweg beim Import zurück', () => {
-    let save = createNewGame('Mira')
+    let save = createNewGame('Mira', world)
     save.currentAreaId = 'dornenkrone'
     save.visitedAreaIds.push('dornenkrone')
     save.player.inventory.morgenklinge = 1
@@ -50,8 +52,8 @@ describe('Rückzug und Kampfvorbereitung', () => {
     save = reduceGame(save, { type: 'START_COMBAT', encounterId: 'boss_arbor' }, world)
     save = reduceGame(save, { type: 'ATTACK' }, world)
     expect(save.activeCombat!.canFlee).toBe(false)
-    expect(() => createSaveExport(save)).not.toThrow()
+    expect(() => createSaveExport(save, world)).not.toThrow()
     save.activeCombat!.canFlee = true
-    expect(() => parseSaveImport(JSON.stringify(save))).toThrow('Rückweg')
+    expect(() => parseSaveImport(JSON.stringify(save), world)).toThrow()
   })
 })

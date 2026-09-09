@@ -28,15 +28,18 @@ npm run preview
 
 ## Stand
 
-Der Quellstand enthält noch den vollständig spielbaren technischen Prototyp,
-dessen bisherige Erzählung durch Kantara ersetzt wird. Diese Inhalte sind
-Umsetzungs- und Regressionstest, aber kein Kanon der neuen Kampagne.
+Die aktive App startet mit dem eigenständigen Kantara-Gerüst im Kurierhof. Der
+vollständig spielbare Talora-Prototyp bleibt als getrenntes Inhaltsmodul für
+Umsetzungsreferenz und Regressionstests erhalten, ist aber kein Kanon der neuen
+Kampagne.
 
 Bereits vorhanden sind:
 
 - responsive App-Hülle und Routing für Start, Spiel, Karte, Aufgaben, Merkliste, Tagebuch und Einstellungen;
 - PWA-Manifest, Service Worker, Offline- und Updatezustände sowie Installationshinweis;
 - getrennte, versionierte IndexedDB-Speicherung für Abenteuer und Einstellungen;
+- eine durchgängige Kampagnenkennung in Welt, Spielstand und Export sowie eine
+  sichere Quarantäne für inkompatible lokale Spielstände;
 - geordnete automatische Schreibvorgänge, Laufzeitvalidierung und Migration;
 - geprüfter JSON-Export/-Import, explizite Importbestätigung und sicherer Reset;
 - Textgrösse, hoher Kontrast und reduzierte Bewegung;
@@ -50,7 +53,8 @@ Bereits vorhanden sind:
 - responsives Inventar mit Gegenstandsdetails, Fokusführung und erlaubten Aktionen;
 - Waffen mit unterschiedlichen Schadenswerten, Panzerungs- und Regionsboni;
 - Heilmittel, erneuerbarer Grundproviant und einmalig plünderbare Truhen;
-- gespeicherte Waffenausrüstung und vor versehentlichem Verbrauch geschützte wichtige Gegenstände;
+- gespeicherte Waffen-, Rüstungs- und Talismanausrüstung, Registerwissen,
+  Waffenmodi und listenförmige Kampfteilnehmende;
 - rundenbasierte Kämpfe mit Angriff, Verteidigung, Heilmitteln, Flucht und angekündigten Gegnerzügen;
 - gespeicherter Kampf- und Zufallszustand, reproduzierbare Züge und verlustfreie Rettung zur letzten Raststelle;
 - gespeicherte Erkundung, wobei an einem neuen Ort zuerst **Untersuche den Ort**
@@ -60,7 +64,7 @@ Bereits vorhanden sind:
 
 ## Nächste Iteration
 
-Phase 0 ist abgeschlossen: Die Weltbibel enthält die vollständigen Inhalts- und
-Abhängigkeitstabellen sowie den geprüften abstrakten Weltgraphen. Als Nächstes
-folgt Phase 1 mit Kampagnentrennung, datengetriebenem Kern und dem typisierten,
-speicherbaren Kantara-Gerüst.
+Phase 0 und Phase 1 sind abgeschlossen: Die Weltbibel enthält das exakte
+Inhaltsinventar, Kantara und Talora können technisch nicht vermischt werden und
+das Kurierhof-Gerüst ist typisiert, validierbar und speicherbar. Als Nächstes
+folgt Phase 2 mit Kampf-, Ausrüstungs- und Leserätsel-Fundament.

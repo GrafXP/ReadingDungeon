@@ -868,6 +868,11 @@ Inhaltsinventar hat eine eindeutige Funktion.
 
 ### Phase 1 — Kampagnengrenze und datengetriebener Kern
 
+**Status: abgeschlossen am 9. September 2026.** Kantara ist die aktive,
+eigenständig validierte Kampagne. Fremde Spielstände werden quarantänisiert
+und exportierbar gehalten; das exakte Phase-0-Inventar meldet weiterhin alle
+noch nicht implementierten Inhalts-IDs.
+
 - `campaignId` in Welt, Spielstand, Export und Laufzeitvalidierung aufnehmen;
   ein Spielstand einer anderen Kampagne darf nie still in Kantara geladen werden
 - `kantaraWorld` als eigenes Inhaltsmodul und einen neuen Spielstart im

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 
 const bible = readFileSync(new URL('../STORY_BIBLE_V2.md', import.meta.url), 'utf8')
+const runtimeInventory = readFileSync(new URL('../src/content/world/kantaraInventory.ts', import.meta.url), 'utf8')
 
 function fail(message) {
   throw new Error(`Phase-0-Validierung: ${message}`)
@@ -83,6 +84,26 @@ for (const [label, ids, target] of inventories) {
   assertEqual(ids.length, target, label)
   assertUnique(ids, label)
 }
+
+function runtimeIds(field) {
+  const block = runtimeInventory.match(new RegExp(`\\b${field}: \\[([\\s\\S]*?)\\n  \\]`))
+  if (!block) fail(`Laufzeit-Inhaltsinventar fehlt: ${field}`)
+  return matches(block[1], /'([^']+)'/g).map((match) => match[1])
+}
+
+for (const [field, expected] of [
+  ['areas', locations],
+  ['items', items],
+  ['interactions', interactions.map(({ id }) => id)],
+  ['puzzles', puzzles.map(({ id }) => id)],
+  ['enemies', enemies],
+  ['encounters', encounters.map(({ id }) => id)],
+]) {
+  const actual = runtimeIds(field)
+  assertEqual(actual.length, expected.length, `Laufzeit-Inventar ${field}`)
+  if (actual.some((id, index) => id !== expected[index])) fail(`Laufzeit-Inventar ${field} weicht von Abschnitt 13 ab`)
+}
+if (!runtimeInventory.includes("passages: sequence('v', 108)")) fail('Laufzeit-Inventar passages weicht von Abschnitt 13 ab')
 
 const definedIds = new Set(inventories.flatMap(([, ids]) => ids))
 const referencedIds = matches(

@@ -26,15 +26,19 @@ function solve(save: GameSave, id: string): GameSave {
 function winEncounter(save: GameSave, encounterId: string): GameSave {
   const encounter = phase2World.encounters.find((entry) => entry.id === encounterId)!
   const started = act(at(save, encounter.areaId), { type: 'START_COMBAT', encounterId })
-  const enemy = phase2World.enemies.find((entry) => entry.id === encounter.enemyId)!
+  const enemy = phase2World.enemies.find((entry) => entry.id === encounter.enemyIds[0])!
   const phase = enemy.phaseTwoAtLife ? 2 : 1
   const announcedMoveId = enemy.movesByPhase[phase][0].id
-  return act({ ...started, activeCombat: { ...started.activeCombat!, enemyLife: 1, phase, announcedMoveId, enemyStance: 'vulnerable', effects: [{ id: 'offener_riss', remainingEnemyTurns: 1 }] } }, { type: 'ATTACK' })
+  return act({ ...started, activeCombat: { ...started.activeCombat!, combatants: [{ ...started.activeCombat!.combatants[0], life: 1, phase, announcedMoveId, stance: 'vulnerable', effects: [{ id: 'offener_riss', remainingEnemyTurns: 1 }] }] } }, { type: 'ATTACK' })
+}
+
+function withCombatant(save: GameSave, patch: Partial<NonNullable<GameSave['activeCombat']>['combatants'][number]>): GameSave {
+  return { ...save, activeCombat: { ...save.activeCombat!, combatants: [{ ...save.activeCombat!.combatants[0], ...patch }] } }
 }
 
 describe('Kampagnen-Übergänge mit vorbereiteten Testzuständen', () => {
   it('löst alle drei Gabenketten unabhängig und erweckt danach die Morgenklinge', () => {
-    let save = createNewGame('Tala')
+    let save = createNewGame('Tala', phase2World)
 
     // Windlied zuerst
     save = act(at(save, 'kristallmine'), { type: 'INSPECT', areaId: 'kristallmine' })
@@ -83,7 +87,7 @@ describe('Kampagnen-Übergänge mit vorbereiteten Testzuständen', () => {
   })
 
   it('befreit die Wächter in beliebiger Reihenfolge und öffnet das Endtor dauerhaft', () => {
-    const initial = createNewGame('Nuri')
+    const initial = createNewGame('Nuri', phase2World)
     let save: GameSave = {
       ...initial,
       player: { ...initial.player, equippedWeaponId: 'morgenklinge', inventory: { ...initial.player.inventory, morgenklinge: 1 } }
@@ -102,7 +106,7 @@ describe('Kampagnen-Übergänge mit vorbereiteten Testzuständen', () => {
   })
 
   it('setzt im Finale drei gespeicherte Siegellichter und gewinnt erst mit dem Versprechen', () => {
-    const initial = createNewGame('Ari')
+    const initial = createNewGame('Ari', phase2World)
     let save: GameSave = {
       ...initial,
       currentAreaId: 'weltenkammer',
@@ -116,22 +120,22 @@ describe('Kampagnen-Übergänge mit vorbereiteten Testzuständen', () => {
     }
     save = act(save, { type: 'START_COMBAT', encounterId: 'boss_raugrim' })
 
-    save = act({ ...save, activeCombat: { ...save.activeCombat!, enemyLife: 25, phase: 1, announcedMoveId: 'grauer_hieb' } }, { type: 'ATTACK' })
+    save = act(withCombatant(save, { life: 25, phase: 1, announcedMoveId: 'grauer_hieb' }), { type: 'ATTACK' })
     expect(save.activeCombat?.pendingSealItemId).toBe('wurzelsiegel')
     save = act(save, { type: 'PLACE_SEAL', itemId: 'wurzelsiegel' })
-    expect(save.activeCombat).toMatchObject({ phase: 2, placedSealItemIds: ['wurzelsiegel'] })
+    expect(save.activeCombat).toMatchObject({ combatants: [{ phase: 2 }], placedSealItemIds: ['wurzelsiegel'] })
 
-    save = act({ ...save, activeCombat: { ...save.activeCombat!, enemyLife: 13, announcedMoveId: 'falsches_bild' } }, { type: 'ATTACK' })
+    save = act(withCombatant(save, { life: 13, announcedMoveId: 'falsches_bild' }), { type: 'ATTACK' })
     expect(save.activeCombat?.pendingSealItemId).toBe('gezeitensiegel')
     save = act(save, { type: 'PLACE_SEAL', itemId: 'gezeitensiegel' })
 
-    save = act({ ...save, activeCombat: { ...save.activeCombat!, enemyLife: 1, announcedMoveId: 'fluegelschlag' } }, { type: 'ATTACK' })
+    save = act(withCombatant(save, { life: 1, announcedMoveId: 'fluegelschlag' }), { type: 'ATTACK' })
     expect(save.activeCombat?.pendingSealItemId).toBe('himmelssiegel')
     save = act(save, { type: 'PLACE_SEAL', itemId: 'himmelssiegel' })
-    expect(save.activeCombat).toMatchObject({ awaitingFinalPromise: true, placedSealItemIds: ['wurzelsiegel', 'gezeitensiegel', 'himmelssiegel'] })
+    expect(save.activeCombat).toMatchObject({ awaitingFinalAction: true, placedSealItemIds: ['wurzelsiegel', 'gezeitensiegel', 'himmelssiegel'] })
     expect(save.flags).not.toContain('raugrim_verbannt')
 
-    save = act(save, { type: 'SPEAK_PROMISE' })
+    save = act(save, { type: 'COMPLETE_FINAL_ACTION' })
     expect(save.activeCombat).toBeNull()
     expect(save.flags).toEqual(expect.arrayContaining(['raugrim_verbannt', 'phase5_abgeschlossen']))
     expect(save.player.inventory).not.toHaveProperty('morgenklinge')
@@ -142,7 +146,7 @@ describe('Kampagnen-Übergänge mit vorbereiteten Testzuständen', () => {
   })
 
   it('behält nach einer Finalniederlage die echten Siegel, setzt aber ihre Kampflichter zurück', () => {
-    const initial = createNewGame('Mio')
+    const initial = createNewGame('Mio', phase2World)
     const fighting: GameSave = {
       ...initial,
       currentAreaId: 'weltenkammer',
@@ -159,7 +163,7 @@ describe('Kampagnen-Übergänge mit vorbereiteten Testzuständen', () => {
     save = {
       ...save,
       player: { ...save.player, life: 1 },
-      activeCombat: { ...save.activeCombat!, phase: 2, announcedMoveId: 'falsches_bild', placedSealItemIds: ['wurzelsiegel'] }
+      activeCombat: { ...save.activeCombat!, combatants: [{ ...save.activeCombat!.combatants[0], phase: 2, announcedMoveId: 'falsches_bild' }], placedSealItemIds: ['wurzelsiegel'] }
     }
     save = act(save, { type: 'ATTACK' })
     expect(save.player.life).toBe(0)
@@ -171,7 +175,7 @@ describe('Kampagnen-Übergänge mit vorbereiteten Testzuständen', () => {
   })
 
   it('rastet sicher, heilt und ergänzt nur den Grundproviant', () => {
-    const initial = createNewGame('Jo')
+    const initial = createNewGame('Jo', phase2World)
     const tired: GameSave = { ...initial, player: { ...initial.player, life: 4, inventory: { ...initial.player.inventory, apfelbrot: 1, waldsalbe: 1 } } }
     const rested = act(tired, { type: 'REST' })
 

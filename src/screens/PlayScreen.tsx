@@ -3,7 +3,7 @@ import { useAppState } from '../app/AppState'
 import { InventoryDialog } from '../components/InventoryDialog'
 import { CombatPanel } from '../components/CombatPanel'
 import { PuzzlePanel } from '../components/PuzzlePanel'
-import { phase2World } from '../content/world'
+import { activeWorld } from '../content/world'
 import { getAvailableActions, isInteractionComplete } from '../engine/actions'
 import { reduceGame } from '../engine/reducer'
 import { evaluateRequirement } from '../engine/requirements'
@@ -31,19 +31,18 @@ export function PlayScreen() {
   }, [game])
   const view = useMemo(() => {
     if (!game) return null
-    const area = getCurrentArea(game, phase2World)
+    const area = getCurrentArea(game, activeWorld)
     return {
       area,
       description: getAreaDescription(game, area),
-      actions: getAvailableActions(game, phase2World),
-      inventory: getInventoryItems(game, phase2World),
+      actions: getAvailableActions(game, activeWorld),
+      inventory: getInventoryItems(game, activeWorld),
       lastEvent: getLastEventText(game)
     }
   }, [game])
 
   if (!game || !view) return null
-  const campaignCompleted = game.flags.includes(phase2World.sliceGoalFlag)
-  const guardiansFreed = ['arbor_befreit', 'marea_befreit', 'voltaro_befreit'].filter((flag) => game.flags.includes(flag)).length
+  const campaignCompleted = evaluateRequirement(activeWorld.completionRequirement, game).met
   const sanctuaryOpen = view.area.safe && evaluateRequirement(view.area.sanctuaryRequirement, game).met
   const areaInspected = game.flags.includes(`area_untersucht:${view.area.id}`)
 
@@ -85,15 +84,8 @@ export function PlayScreen() {
 
         {campaignCompleted && (
           <section className="phase-note phase-note--success" aria-labelledby="phase-note-title">
-            <h2 id="phase-note-title">Taloras Morgen ist zurück</h2>
-            <p>Raugrim ist verbannt. Alle Wege und optionalen Kartenränder bleiben im Nachspiel erreichbar.</p>
-          </section>
-        )}
-
-        {!campaignCompleted && guardiansFreed > 0 && !game.activeCombat && (
-          <section className="phase-note" aria-labelledby="phase-note-title">
-            <h2 id="phase-note-title">{guardiansFreed} von 3 Wächtern befreit</h2>
-            <p>{guardiansFreed === 3 ? 'Alle drei Siegel sind bei dir. Zeige sie mit der Morgenklinge am Tor der sechs Zeichen beim Drei-Wege-Platz.' : 'Befreie die übrigen Wächter mit der Morgenklinge. Die Reihenfolge ist frei.'}</p>
+            <h2 id="phase-note-title">Kampagne abgeschlossen</h2>
+            <p>Die Hauptaufgabe ist erfüllt. Bereits geöffnete Wege bleiben erreichbar.</p>
           </section>
         )}
 
@@ -112,16 +104,16 @@ export function PlayScreen() {
           </ul>
         </section>}
 
-        {!game.activeCombat && areaInspected && phase2World.puzzles?.filter((puzzle) => puzzle.areaId === game.currentAreaId && !isInteractionComplete(phase2World.interactions.find((entry) => entry.id === puzzle.interactionId)!, game)).map((puzzle) => (
-          <PuzzlePanel key={puzzle.id} game={game} puzzle={puzzle} onAction={(action) => updateAdventure((current) => reduceGame(current, action, phase2World))} />
+        {!game.activeCombat && areaInspected && activeWorld.puzzles?.filter((puzzle) => puzzle.areaId === game.currentAreaId && !isInteractionComplete(activeWorld.interactions.find((entry) => entry.id === puzzle.interactionId)!, game)).map((puzzle) => (
+          <PuzzlePanel key={puzzle.id} game={game} puzzle={puzzle} onAction={(action) => updateAdventure((current) => reduceGame(current, action, activeWorld))} />
         ))}
 
         {game.activeCombat ? (
           <CombatPanel
             game={game}
-            world={phase2World}
+            world={activeWorld}
             onOpenInventory={() => setInventoryOpen(true)}
-            onAction={(action) => updateAdventure((current) => reduceGame(current, action, phase2World))}
+            onAction={(action) => updateAdventure((current) => reduceGame(current, action, activeWorld))}
           />
         ) : (
           <section className="actions-section" aria-labelledby="actions-title">
@@ -135,7 +127,7 @@ export function PlayScreen() {
                   aria-disabled={action.disabled}
                   onClick={() => {
                     if (!action.disabled) {
-                      updateAdventure((current) => reduceGame(current, action.gameAction, phase2World))
+                      updateAdventure((current) => reduceGame(current, action.gameAction, activeWorld))
                       if (action.kind === 'inspect' || action.kind === 'interaction') requestAnimationFrame(showResult)
                     }
                   }}
@@ -163,11 +155,11 @@ export function PlayScreen() {
       {inventoryOpen && (
         <InventoryDialog
           game={game}
-          world={phase2World}
+          world={activeWorld}
           returnFocusRef={inventoryButtonRef}
           onClose={() => setInventoryOpen(false)}
           onAction={(action) => {
-            updateAdventure((current) => reduceGame(current, action, phase2World))
+            updateAdventure((current) => reduceGame(current, action, activeWorld))
             if (action.type === 'USE_ITEM' && game.activeCombat) setInventoryOpen(false)
           }}
         />

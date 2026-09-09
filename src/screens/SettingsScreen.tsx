@@ -3,15 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
 import type { GameSave } from '../domain/game'
 import type { TextSize } from '../domain/settings'
-import { campaignWorld } from '../content/world/campaignWorld'
+import { activeWorld } from '../content/world'
 import { createSaveExport, DataValidationError, parseSaveImport } from '../storage/validation'
 
-function downloadSave(save: GameSave) {
-  const blob = new Blob([createSaveExport(save)], { type: 'application/json' })
+function downloadJson(json: string, filename: string) {
+  const blob = new Blob([json], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `textdungeon-${save.playerName.toLowerCase().replace(/[^a-z0-9]+/gi, '-') || 'spielstand'}.json`
+  link.download = filename
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -22,6 +22,7 @@ export function SettingsScreen() {
     settingsReady,
     updateSettings,
     game,
+    incompatibleSaveExport,
     adventureStatus,
     resetAdventure,
     importAdventure
@@ -47,7 +48,7 @@ export function SettingsScreen() {
       return
     }
     try {
-      const imported = parseSaveImport(await file.text())
+      const imported = parseSaveImport(await file.text(), activeWorld)
       if (selection === importSelection.current) {
         setShowReset(false)
         setPendingImport(imported)
@@ -84,7 +85,7 @@ export function SettingsScreen() {
   return (
     <main id="main-content" className="screen page-screen settings-screen">
       <header className="page-heading">
-        <p className="eyebrow">So passt Talora zu dir</p>
+        <p className="eyebrow">So passt ReadingDungeon zu dir</p>
         <h1>Einstellungen</h1>
         <p>Änderungen werden sofort und getrennt von deinem Abenteuer gespeichert.</p>
       </header>
@@ -118,18 +119,21 @@ export function SettingsScreen() {
       <section className="settings-card storage-card" aria-labelledby="storage-settings">
         <div className="setting-intro"><span aria-hidden="true">▣</span><div><h2 id="storage-settings">Abenteuer verwalten</h2><p>Spielstände bleiben lokal in diesem Browser.</p></div></div>
         {game ? (
-          <div className="save-summary"><span className="save-avatar" aria-hidden="true">✦</span><div><strong>{game.playerName}</strong><small>{campaignWorld.areas.find((area) => area.id === game.currentAreaId)?.name} · Runde {game.turn}</small></div></div>
+          <div className="save-summary"><span className="save-avatar" aria-hidden="true">✦</span><div><strong>{game.playerName}</strong><small>{activeWorld.areas.find((area) => area.id === game.currentAreaId)?.name} · Runde {game.turn}</small></div></div>
         ) : (
-          <p className="muted-copy">{adventureStatus === 'invalid' ? 'Der gespeicherte Spielstand ist beschädigt und bleibt unangetastet, bis du ihn zurücksetzt.' : 'Noch kein gültiges Abenteuer gespeichert.'}</p>
+          <p className="muted-copy">{adventureStatus === 'incompatible' ? 'Der gespeicherte Spielstand gehört zu einer anderen Kampagne und bleibt unangetastet. Exportiere ihn vor einem Neustart.' : adventureStatus === 'invalid' ? 'Der gespeicherte Spielstand ist beschädigt und bleibt unangetastet, bis du ihn zurücksetzt.' : 'Noch kein gültiges Abenteuer gespeichert.'}</p>
         )}
 
         <div className="storage-actions">
-          <button className="button button--secondary" disabled={!game} onClick={() => game && downloadSave(game)}>Spielstand exportieren</button>
+          <button className="button button--secondary" disabled={!game && !incompatibleSaveExport} onClick={() => {
+            if (game) downloadJson(createSaveExport(game, activeWorld), `textdungeon-${game.playerName.toLowerCase().replace(/[^a-z0-9]+/gi, '-') || 'spielstand'}.json`)
+            else if (incompatibleSaveExport) downloadJson(incompatibleSaveExport, 'textdungeon-alter-spielstand.json')
+          }}>Spielstand exportieren</button>
           <label className="button button--secondary file-button">
             Spielstand importieren
             <input ref={fileInput} disabled={busy} type="file" accept="application/json,.json" onChange={(event) => void selectImport(event)} />
           </label>
-          {(game || adventureStatus === 'invalid' || adventureStatus === 'error') && (
+          {(game || adventureStatus === 'incompatible' || adventureStatus === 'invalid' || adventureStatus === 'error') && (
             <button className="button button--danger-quiet" disabled={busy} onClick={() => { ++importSelection.current; setPendingImport(null); setShowReset(true) }}>Abenteuer zurücksetzen</button>
           )}
         </div>

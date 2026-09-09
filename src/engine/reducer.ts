@@ -2,10 +2,10 @@ import type { WorldDefinition } from '../domain/content'
 import { JOURNAL_LIMIT, type GameEvent, type GameSave } from '../domain/game'
 import { evaluateRequirement } from './requirements'
 import { isInteractionComplete, otherEnd, type GameAction } from './actions'
-import { attack, defend, flee, placeSeal, respawn, speakPromise, startCombat, useCombatItem, type CombatTransition } from './combat'
+import { attack, completeFinalCombatAction, defend, flee, placeSeal, respawn, startCombat, useCombatItem, type CombatTransition } from './combat'
 import { applyEffect } from './effects'
 import { getPuzzleState, isPuzzleSolved } from './puzzles'
-import { getAreaInspectText, getQuestViews } from './selectors'
+import { getAreaInspectText } from './selectors'
 import { getHintLevel, getHintTexts, hintId } from './hints'
 
 function unique<T>(values: T[]): T[] {
@@ -28,6 +28,7 @@ function finishCombatTransition(save: GameSave, transition: CombatTransition | n
 }
 
 export function reduceGame(save: GameSave, action: GameAction, world: WorldDefinition): GameSave {
+  if (save.campaignId !== world.campaignId) return save
   const next = transitionGame(save, action, world)
   if (next === save || next.activeCombat) return next
   const beats = world.storyBeats?.filter((beat) => !next.deliveredDialogueIds.includes(beat.id) && evaluateRequirement(beat.requirement, next).met) ?? []
@@ -45,14 +46,14 @@ export function reduceGame(save: GameSave, action: GameAction, world: WorldDefin
 function transitionGame(save: GameSave, action: GameAction, world: WorldDefinition): GameSave {
   // Reading help never advances the enemy, even during a fight or rescue pause.
   if (action.type === 'SHOW_HINT') {
-    const quest = getQuestViews(save).find((entry) => entry.id === action.questId && !entry.done)
+    const quest = world.journal?.getQuestViews?.(save).find((entry) => entry.id === action.questId && !entry.done)
     if (!quest || !Number.isInteger(action.level) || action.level < 1 || action.level > 3 || action.level !== getHintLevel(save, quest) + 1) return save
     const id = hintId(quest, action.level)
     return withEvent({
       ...save,
       deliveredDialogueIds: unique([...save.deliveredDialogueIds, id]),
       discoveredClueIds: action.level === 3 ? unique([...save.discoveredClueIds, ...(quest.hintAreaIds ?? []).filter((areaId) => world.areas.some((area) => area.id === areaId)).map((areaId) => `hinweis_ort:${areaId}`)]) : save.discoveredClueIds
-    }, `Kunos Hinweis ${action.level} zu «${quest.title}»: ${getHintTexts(quest)[action.level - 1]}`, id)
+    }, `Hinweis ${action.level} zu «${quest.title}»: ${getHintTexts(quest, world.journal?.hintSteps)[action.level - 1]}`, id)
   }
   if (save.player.life === 0) {
     return action.type === 'RESPAWN' ? finishCombatTransition(save, respawn(save, world)) : save
@@ -60,7 +61,7 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
 
   if (save.activeCombat) {
     if (action.type === 'PLACE_SEAL') return finishCombatTransition(save, placeSeal(save, action.itemId, world))
-    if (action.type === 'SPEAK_PROMISE') return finishCombatTransition(save, speakPromise(save, world))
+    if (action.type === 'COMPLETE_FINAL_ACTION') return finishCombatTransition(save, completeFinalCombatAction(save, world))
     if (action.type === 'ATTACK') return finishCombatTransition(save, attack(save, world))
     if (action.type === 'DEFEND') return finishCombatTransition(save, defend(save, world))
     if (action.type === 'FLEE') return finishCombatTransition(save, flee(save, world))
@@ -104,29 +105,33 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
     if (isPuzzleSolved(next, puzzle)) text += ' Das Rätsel ist gelöst. Du kannst es jetzt abschliessen, sobald alle benötigten Teile da sind.'
     return withEvent(next, text, `puzzle:${puzzle.id}`)
   }
-  if (action.type === 'ATTACK' || action.type === 'DEFEND' || action.type === 'FLEE' || action.type === 'RESPAWN' || action.type === 'PLACE_SEAL' || action.type === 'SPEAK_PROMISE') return save
+  if (action.type === 'ATTACK' || action.type === 'DEFEND' || action.type === 'FLEE' || action.type === 'RESPAWN' || action.type === 'PLACE_SEAL' || action.type === 'COMPLETE_FINAL_ACTION') return save
 
   if (action.type === 'REST') {
     const area = world.areas.find((entry) => entry.id === save.currentAreaId)
     if (!area?.safe || !evaluateRequirement(area.sanctuaryRequirement, save).met) return save
-    const bread = save.player.inventory.apfelbrot ?? 0
-    if (save.player.life === save.player.maxLife && bread >= 3 && save.lastSanctuaryId === area.id) return save
+    const restocks = world.start.sanctuaryRestocks ?? []
+    const fullyStocked = restocks.every((restock) => (save.player.inventory[restock.itemId] ?? 0) >= restock.quantity)
+    if (save.player.life === save.player.maxLife && fullyStocked && save.lastSanctuaryId === area.id) return save
+    const inventory = { ...save.player.inventory }
+    for (const restock of restocks) inventory[restock.itemId] = Math.max(restock.quantity, inventory[restock.itemId] ?? 0)
     return withEvent({
       ...save,
       lastSanctuaryId: area.id,
       player: {
         ...save.player,
         life: save.player.maxLife,
-        inventory: { ...save.player.inventory, apfelbrot: Math.max(3, bread) }
+        inventory
       }
-    }, `Du rastest in ${area.name}. Deine Lebenspunkte und dein Grundproviant sind wieder bereit.`, `rest:${area.id}`)
+    }, `Du rastest in ${area.name}. Deine Lebenspunkte und Vorräte sind wieder bereit.`, `rest:${area.id}`)
   }
 
   if (action.type === 'MOVE') {
     const passage = world.passages.find((entry) => entry.id === action.passageId)
     if (!passage || otherEnd(passage, save.currentAreaId) !== action.toAreaId) return save
     const requirement = evaluateRequirement(passage.requirement, save)
-    if (!requirement.met && !save.unlockedPassageIds.includes(passage.id)) return save
+    const guardDefeated = !passage.guardEncounterId || save.defeatedEncounterIds.includes(passage.guardEncounterId)
+    if ((!requirement.met && !save.unlockedPassageIds.includes(passage.id)) || !guardDefeated) return save
     const destination = world.areas.find((entry) => entry.id === action.toAreaId)
     if (!destination) return save
 
@@ -138,8 +143,10 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
       deliveredDialogueIds: unique([...save.deliveredDialogueIds, `area_intro:${save.currentAreaId}`]),
       lastSanctuaryId: destination.safe && evaluateRequirement(destination.sanctuaryRequirement, save).met ? destination.id : save.lastSanctuaryId
     }
-    if (destination.id === 'rand_der_nacht' && !save.visitedAreaIds.includes(destination.id)) {
-      moved.player = { ...save.player, life: save.player.maxLife, inventory: { ...save.player.inventory, apfelbrot: Math.max(3, save.player.inventory.apfelbrot ?? 0) } }
+    if (!save.visitedAreaIds.includes(destination.id) && destination.firstVisitRestocks?.length) {
+      const inventory = { ...moved.player.inventory }
+      for (const restock of destination.firstVisitRestocks) inventory[restock.itemId] = Math.max(restock.quantity, inventory[restock.itemId] ?? 0)
+      moved.player = { ...moved.player, life: moved.player.maxLife, inventory }
     }
     return withEvent(moved, `Du erreichst ${destination.name}.`, `move:${passage.id}`)
   }
@@ -172,17 +179,7 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
     return withEvent(healed, `Du benutzt ${item.name} und erhältst ${restored} Lebenspunkte zurück.`, `use:${item.id}`)
   }
 
-  if (action.type === 'USE_TOOL') {
-    if ((save.player.inventory[action.itemId] ?? 0) < 1) return save
-    if (action.itemId === 'kartenstift') return withEvent({ ...save, flags: unique([...save.flags, 'kartennotiz_sichtbar']) }, 'Unter dem Kartenstift erscheint Alvas Notiz: «Eine gute Karte zeigt auch, wer auf deine Rückkehr wartet.» Du kannst sie jederzeit auf der Karte nachlesen.', 'tool:kartenstift')
-    if (action.itemId === 'muschelhorn' && ['muschelhafen', 'perlenbecken'].includes(save.currentAreaId) && save.flags.includes('marea_befreit')) return withEvent(save, save.flags.includes('raugrim_verbannt') ? 'Marea antwortet dem Horn. «Heute erzählen die Menschen wieder ihre eigenen Geschichten. Welche möchtest du mir erzählen?»' : 'Marea taucht neben dir auf. «Alva konnte gut zuhören. Genau wie du. Wenn du Hilfe brauchst, ruf mich wieder.»', 'tool:muschelhorn')
-    if (action.itemId === 'glasauge') {
-      const chests = world.interactions.filter((entry) => entry.areaId === save.currentAreaId && entry.chestId && !isInteractionComplete(entry, save))
-      const contents = chests.map((chest) => chest.effects.filter((effect) => effect.kind === 'addItem').map((effect) => `${effect.quantity} × ${world.items.find((item) => item.id === effect.itemId)?.name}`).join(', '))
-      return withEvent(save, contents.length ? `Das Glasauge zeigt: ${contents.join('; ')}. Es öffnet die Truhe nicht.` : 'Das Glasauge findet hier keine ungeöffnete Truhe.', 'tool:glasauge')
-    }
-    return save
-  }
+  if (action.type === 'USE_TOOL') return save
 
   if (action.type === 'EQUIP_WEAPON') {
     const item = world.items.find((entry) => entry.id === action.itemId)
@@ -203,7 +200,7 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
   if (puzzle && !isPuzzleSolved(save, puzzle)) return save
 
   let next = save
-  for (const effect of interaction.effects) next = applyEffect(next, effect)
+  for (const effect of interaction.effects) next = applyEffect(next, effect, world)
   if (interaction.chestId) {
     next = { ...next, openedChestIds: unique([...next.openedChestIds, interaction.chestId]) }
   } else {

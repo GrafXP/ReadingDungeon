@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createNewGame } from '../domain/game'
-import { getReminderGroups } from './reminders'
+import { getReminderGroups } from '../content/world/campaignReminders'
+import { campaignWorld } from '../content/world/campaignWorld'
 
 function findStep(save: ReturnType<typeof createNewGame>, id: string) {
   return getReminderGroups(save).flatMap((group) => group.steps).find((step) => step.id === id)
@@ -8,7 +9,7 @@ function findStep(save: ReturnType<typeof createNewGame>, id: string) {
 
 describe('reminders', () => {
   it('starts with the temple and reveals the three ingredient lists after visiting it', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', campaignWorld)
     expect(findStep(save, 'morgen_tempel')).toMatchObject({ status: 'missing', areaId: 'morgen_tempel' })
 
     save.visitedAreaIds.push('morgen_tempel')
@@ -21,7 +22,7 @@ describe('reminders', () => {
   })
 
   it('keeps a consumed ingredient marked as complete', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', campaignWorld)
     save.visitedAreaIds.push('morgen_tempel')
     save.player.inventory.mondmoos = 1
     expect(findStep(save, 'mondmoos')?.status).toBe('ready')
@@ -32,7 +33,7 @@ describe('reminders', () => {
   })
 
   it('switches from ingredients to guardian seals after the Morgenklinge awakens', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', campaignWorld)
     save.flags.push('morgenklinge_erweckt')
     save.player.inventory.morgenklinge = 1
 
@@ -45,7 +46,7 @@ describe('reminders', () => {
   })
 
   it('keeps the return to the temple visible after all three gifts are collected', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', campaignWorld)
     save.visitedAreaIds.push('morgen_tempel')
     for (const itemId of ['sonnenfunke', 'quelltraene', 'windlied']) save.player.inventory[itemId] = 1
     save.flags.push('sonnenfunke_erhalten', 'quelltraene_erhalten', 'windlied_erhalten')

@@ -11,7 +11,7 @@ import { InventoryDialog } from './InventoryDialog'
 function InventoryHarness({ onAction = () => undefined }: { onAction?: (action: GameAction) => void }) {
   const [open, setOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const game = createNewGame('Mira')
+  const game = createNewGame('Mira', phase2World)
 
   return (
     <>
@@ -32,9 +32,11 @@ function InventoryHarness({ onAction = () => undefined }: { onAction?: (action: 
 describe('Inventardialog', () => {
   it('erklärt vor dem Heilen den Kampfzug und den angekündigten schweren Angriff', async () => {
     const user = userEvent.setup()
-    const initial = createNewGame('Mira')
+    const initial = createNewGame('Mira', phase2World)
     initial.currentAreaId = 'perlenbecken'
     initial.visitedAreaIds.push('perlenbecken')
+    initial.player.inventory.morgenklinge = 1
+    initial.player.equippedWeaponId = 'morgenklinge'
     const game = reduceGame(initial, { type: 'START_COMBAT', encounterId: 'boss_marea' }, phase2World)
     render(<InventoryDialog game={game} world={phase2World} returnFocusRef={{ current: null }} onAction={vi.fn()} onClose={vi.fn()} />)
     await user.click(screen.getByRole('button', { name: /Apfelbrot/ }))
@@ -44,7 +46,7 @@ describe('Inventardialog', () => {
   })
   it('zeigt Gegenstandsdetails und die unterschiedlichen Waffenwerte', async () => {
     const user = userEvent.setup()
-    const game = createNewGame('Mira')
+    const game = createNewGame('Mira', phase2World)
     game.player.inventory.hafenspeer = 1
     const returnRef = { current: document.createElement('button') }
 
@@ -59,7 +61,7 @@ describe('Inventardialog', () => {
 
   it('erklärt, warum Heilung bei vollem Leben nichts verbraucht', async () => {
     const user = userEvent.setup()
-    const game = createNewGame('Mira')
+    const game = createNewGame('Mira', phase2World)
     const returnRef = { current: document.createElement('button') }
 
     render(<InventoryDialog game={game} world={phase2World} returnFocusRef={returnRef} onAction={vi.fn()} onClose={vi.fn()} />)

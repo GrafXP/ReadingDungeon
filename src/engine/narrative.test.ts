@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { campaignWorld as world } from '../content/world/campaignWorld'
+import { getMainGoal, getQuestViews } from '../content/world/campaignJournal'
 import { createNewGame } from '../domain/game'
 import { createSaveExport, parseSaveImport } from '../storage/validation'
 import { getAvailableActions } from './actions'
 import { reduceGame } from './reducer'
-import { getAreaDescription, getAreaInspectText, getMainGoal, getQuestViews } from './selectors'
+import { getAreaDescription, getAreaInspectText } from './selectors'
 
 describe('Erzählung und Aufgaben folgen dem tatsächlichen Fortschritt', () => {
   it.each([
@@ -13,7 +14,7 @@ describe('Erzählung und Aufgaben folgen dem tatsächlichen Fortschritt', () => 
     ['tintenqualle_quellfach', 'korallengrotte', 'tintenqualle_besiegt', 'quellwasser', 1],
     ['gewittergeist_balkon', 'himmelswerft', 'gewittergeist_geloest', 'kuehlende_limonade', 1]
   ] as const)('macht den bewachten optionalen Fund %s einmalig zugänglich', (interactionId, areaId, flag, itemId, quantity) => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', world)
     save.currentAreaId = areaId
     save.visitedAreaIds.push(areaId)
     const action = { type: 'TAKE_ITEM', interactionId } as const
@@ -22,11 +23,11 @@ describe('Erzählung und Aufgaben folgen dem tatsächlichen Fortschritt', () => 
     const claimed = reduceGame(save, action, world)
     expect(claimed.player.inventory[itemId]).toBe((save.player.inventory[itemId] ?? 0) + quantity)
     expect(reduceGame(claimed, action, world)).toBe(claimed)
-    expect(() => createSaveExport(claimed)).not.toThrow()
+    expect(() => createSaveExport(claimed, world)).not.toThrow()
   })
 
   it('verspricht bei einem blossen Wiederbesuch keine erledigten Reparaturen oder Funde', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', world)
     save.deliveredDialogueIds = ['area_intro:mooslichtung', 'area_intro:gluehgarten', 'area_intro:foersterhaus', 'area_intro:spinnenhain']
     const description = (id: string) => getAreaDescription(save, world.areas.find((area) => area.id === id)!)
     expect(description('mooslichtung')).toContain('warten noch reife Goldbeeren')
@@ -36,7 +37,7 @@ describe('Erzählung und Aufgaben folgen dem tatsächlichen Fortschritt', () => 
   })
 
   it('ändert Ort und Untersuchung sofort nach der Reparatur, auch vor einem ersten Besuch', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', world)
     const grotto = world.areas.find((area) => area.id === 'korallengrotte')!
     expect(getAreaDescription(save, grotto)).toContain('trübe Quelle')
     save.flags.push('schleuse_repariert')
@@ -47,7 +48,7 @@ describe('Erzählung und Aufgaben folgen dem tatsächlichen Fortschritt', () => 
   })
 
   it('lässt Tempel und Tor nach dem Finale nicht wieder geschlossen oder bewaffnet erscheinen', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', world)
     save.flags.push('morgenklinge_erweckt', 'endtor_offen', 'raugrim_verbannt')
     expect(getAreaDescription(save, world.areas.find((area) => area.id === 'morgen_tempel')!)).toContain('sind leer')
     expect(getAreaInspectText(save, world.areas.find((area) => area.id === 'tor_der_sechs_zeichen')!)).toContain('bleibt offen')
@@ -55,21 +56,21 @@ describe('Erzählung und Aufgaben folgen dem tatsächlichen Fortschritt', () => 
   })
 
   it('holt fehlende Erinnerungen in Reihenfolge nach und speichert sie ohne Wiederholung', () => {
-    let save = createNewGame('Mira')
+    let save = createNewGame('Mira', world)
     save.flags.push('sonnenfunke_erhalten', 'quelltraene_erhalten', 'windlied_erhalten')
     save = reduceGame(save, { type: 'INSPECT', areaId: 'sonnenwacht' }, world)
     expect(save.deliveredDialogueIds).toEqual(['erinnerung_alva', 'erinnerung_waechter', 'erinnerung_kuno'])
     const text = save.recentEvents.at(-1)!.text
     expect(text.indexOf('Alva!')).toBeLessThan(text.indexOf('Die Wächter halfen'))
     expect(text.indexOf('Die Wächter halfen')).toBeLessThan(text.indexOf('Ich war ihr Begleiter'))
-    save = parseSaveImport(createSaveExport(save))
+    save = parseSaveImport(createSaveExport(save, world), world)
     save = reduceGame(save, { type: 'INSPECT', areaId: 'sonnenwacht' }, world)
     expect(save.recentEvents.at(-1)!.text).not.toContain('Ich war ihr Begleiter')
     expect(save.journal.filter((event) => event.text.includes('Ich war ihr Begleiter'))).toHaveLength(1)
   })
 
   it('weist nach dem dritten Wächter zum Tor und behält offene Nachspielaufgaben', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', world)
     expect(getMainGoal(save).title).toBe('Suche den Tempel der Morgenklinge')
     save.player.inventory.morgenklinge = 1
     save.flags.push('arbor_befreit', 'marea_befreit', 'voltaro_befreit')
@@ -83,7 +84,7 @@ describe('Erzählung und Aufgaben folgen dem tatsächlichen Fortschritt', () => 
   })
 
   it('verrät zu Beginn keine Schlussaktionen und nennt fehlende Zwischenschritte', () => {
-    const save = createNewGame('Mira')
+    const save = createNewGame('Mira', world)
     expect(getAvailableActions(save, world).some((action) => action.id === 'interaction:tessa_vollstaendige_karte')).toBe(false)
     save.player.inventory.sonnenspiegel = 1
     expect(getQuestViews(save).find((quest) => quest.id === 'sonnenfunke')?.hint).toContain('Mooslichtung')

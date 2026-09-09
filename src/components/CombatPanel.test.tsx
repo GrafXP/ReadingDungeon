@@ -7,7 +7,9 @@ import { reduceGame } from '../engine/reducer'
 import { CombatPanel } from './CombatPanel'
 
 function bossGame() {
-  const start = createNewGame('Mira')
+  const start = createNewGame('Mira', phase2World)
+  start.player.inventory.morgenklinge = 1
+  start.player.equippedWeaponId = 'morgenklinge'
   const atBoss = { ...start, currentAreaId: 'perlenbecken', visitedAreaIds: ['sonnenwacht', 'perlenbecken'] }
   return reduceGame(atBoss, { type: 'START_COMBAT', encounterId: 'boss_marea' }, phase2World)
 }
@@ -20,8 +22,8 @@ describe('Kampfanzeige', () => {
     expect(screen.getByText('Boss · Phase 1')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: /Marea.*24 von 24/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Wellenrolle' })).toBeInTheDocument()
-    expect(screen.getByText(/Rückweg bleibt garantiert offen/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Zieh dich zurück/ })).toHaveAttribute('aria-disabled', 'false')
+    expect(screen.getByRole('button', { name: /Fliehen/ })).toHaveTextContent('Kampf verlassen')
+    expect(screen.getByRole('button', { name: /Fliehen/ })).toHaveAttribute('aria-disabled', 'false')
   })
 
   it('sendet klare Kampfaktionen', async () => {
@@ -44,7 +46,7 @@ describe('Kampfanzeige', () => {
     const defeated = { ...game, player: { ...game.player, life: 0 } }
     render(<CombatPanel game={defeated} world={phase2World} onAction={vi.fn()} onOpenInventory={vi.fn()} />)
 
-    expect(screen.getByRole('heading', { name: 'Kuno holt Hilfe' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Hilfe ist unterwegs' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Zum letzten sicheren Ort' })).toBeInTheDocument()
     expect(screen.getByText(/nichts aus deinem Inventar/)).toBeInTheDocument()
   })

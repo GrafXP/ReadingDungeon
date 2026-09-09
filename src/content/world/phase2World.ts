@@ -168,17 +168,17 @@ export const phase2Items: ItemDefinition[] = [
   {
     id: 'reiseschwert', name: 'Reiseschwert',
     description: 'Tessas zuverlässiges altes Schwert. Es ist leicht zu führen und richtet beständigen Schaden an.',
-    kind: 'weapon', weapon: { minDamage: 2, maxDamage: 4, trait: 'Sehr zuverlässig' }
+    kind: 'weapon', weapon: { damageType: 'physical', minDamage: 2, maxDamage: 4, trait: 'Sehr zuverlässig' }
   },
   {
     id: 'hafenspeer', name: 'Hafenspeer',
     description: 'Ein gut ausbalancierter Speer aus dem Muschelhafen. Seine breite Spitze hilft besonders gegen Wassergegner.',
-    kind: 'weapon', weapon: { minDamage: 3, maxDamage: 5, trait: 'Bonus gegen Wassergegner' }
+    kind: 'weapon', weapon: { damageType: 'physical', minDamage: 3, maxDamage: 5, trait: 'Bonus gegen Wassergegner' }
   },
   {
     id: 'morgenklinge', name: 'Morgenklinge',
     description: 'Eine leichte, heilige Klinge. Ihr Licht durchdringt den Schattenpanzer der verdorbenen Wächter.',
-    kind: 'weapon', weapon: { minDamage: 3, maxDamage: 5, trait: 'Durchdringt Schattenpanzer' }
+    kind: 'weapon', weapon: { damageType: 'physical', minDamage: 3, maxDamage: 5, trait: 'Durchdringt Schattenpanzer' }
   },
   { id: 'laterne', name: 'Laterne', description: 'Eine kleine Laterne für dunkle Winkel.', kind: 'tool' },
   {
@@ -323,7 +323,7 @@ export const phase4Enemies: EnemyDefinition[] = [
     ] }
   },
   {
-    id: 'marea', name: 'Marea, Wächterin der Gezeiten', kind: 'boss' as const, maxLife: 24, defense: 1, tags: ['water', 'boss'], shadowArmor: true, phaseTwoAtLife: 12,
+    id: 'marea', name: 'Marea, Wächterin der Gezeiten', kind: 'boss' as const, maxLife: 24, defense: 1, tags: ['water', 'boss'], phaseTwoAtLife: 12,
     movesByPhase: {
       1: [
         { id: 'wellenrolle', name: 'Wellenrolle', telegraph: 'Das Wasser steigt. Marea richtet sich für eine gewaltige Rolle aus.', icon: '≋', damage: 7, kind: 'heavy' as const, defendNegates: true, vulnerableAfterDefend: true },
@@ -341,19 +341,19 @@ export const phase4Enemies: EnemyDefinition[] = [
 
 export const phase4Encounters: EncounterDefinition[] = [
   {
-    id: 'begegnung_pfuetzenhopser', areaId: 'kuestenpfad', enemyId: 'pfuetzenhopser',
+    id: 'begegnung_pfuetzenhopser', areaId: 'kuestenpfad', enemyIds: ['pfuetzenhopser'],
     label: 'Stelle dich dem Pfützenhopser', description: 'Das kleine Wasserwesen versperrt eine Muschelspur, kann aber umgangen werden.',
     fleeAreaId: 'drei_wege_platz', victoryText: 'Der Pfützenhopser platscht ins flache Wasser und hüpft davon.',
     rewardEffects: [{ kind: 'setFlag', flag: 'pfuetzenhopser_besiegt' }]
   },
   {
-    id: 'begegnung_wasserwaechter', areaId: 'gezeitentempel', enemyId: 'wasserwaechter',
+    id: 'begegnung_wasserwaechter', areaId: 'gezeitentempel', enemyIds: ['wasserwaechter'],
     label: 'Fordere den Wasserwächter heraus', description: 'Ein langsamer Wächter steht vor einer alten Tempeltruhe.',
     fleeAreaId: 'versunkene_bibliothek', victoryText: 'Der Wasserwächter senkt den Schild und wird wieder zu einer stillen Statue.',
     rewardEffects: [{ kind: 'setFlag', flag: 'wasserwaechter_besiegt' }]
   },
   {
-    id: 'boss_marea', areaId: 'perlenbecken', enemyId: 'marea',
+    id: 'boss_marea', areaId: 'perlenbecken', enemyIds: ['marea'],
     label: 'Stelle dich Marea und ihrem Schattenpanzer', description: 'Gewöhnliche Waffen können das schwarze Glas nicht durchdringen. Ein Rückzug bleibt möglich.',
     fleeAreaId: 'gezeitentempel', victoryText: 'Das schwarze Glas wird zu klarem Wasser. Marea ist frei und legt das Gezeitensiegel vor dich.',
     rewardEffects: [
@@ -365,12 +365,27 @@ export const phase4Encounters: EncounterDefinition[] = [
 ]
 
 export const phase2World: WorldDefinition = {
+  campaignId: 'talora-phase2-reference',
+  presentation: {
+    eyebrow: 'Ein Abenteuer in Talora', title: 'Die Morgenklinge', subtitle: 'Technischer Vertikalschnitt',
+    fallbackPlaceName: 'Talora', emptyQuestTitle: 'Erkunde Talora', emptyQuestDescription: 'Folge dem offenen Weg.'
+  },
+  regions: [
+    { id: 'sonnenmark', name: 'Sonnenmark' }, { id: 'wisperwald', name: 'Wisperwald' },
+    { id: 'spiegelkueste', name: 'Spiegelküste' }, { id: 'donnerhoehe', name: 'Donnerhöhe' },
+    { id: 'verbindungswege', name: 'Verbindungswege' }, { id: 'jenseits_des_tors', name: 'Jenseits des Tors' }
+  ],
+  start: {
+    areaId: 'sonnenwacht', maxLife: 20, inventory: { reiseschwert: 1, laterne: 1, apfelbrot: 3 },
+    equippedWeaponId: 'reiseschwert', equippedArmorId: null, equippedTalismanId: null,
+    eventText: '{playerName} beginnt den technischen Talora-Vertikalschnitt.',
+    sanctuaryRestocks: [{ itemId: 'apfelbrot', quantity: 3 }]
+  },
+  completionRequirement: { kind: 'flag', flag: 'phase2_abgeschlossen' },
   areas: phase2Areas,
   passages: phase2Passages,
   items: phase2Items,
   interactions: phase2Interactions,
   enemies: phase4Enemies,
-  encounters: phase4Encounters,
-  startAreaId: 'sonnenwacht',
-  sliceGoalFlag: 'phase2_abgeschlossen'
+  encounters: phase4Encounters
 }

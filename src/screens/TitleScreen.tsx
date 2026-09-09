@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
-import { phase2World } from '../content/world'
+import { activeWorld } from '../content/world'
 
 export function TitleScreen() {
   const { adventureStatus, game, loadError, startAdventure, resetAdventure } = useAppState()
@@ -26,7 +26,7 @@ export function TitleScreen() {
   }
 
   const showForm = adventureStatus === 'empty' || showNewGame
-  const savedAreaName = game ? phase2World.areas.find((area) => area.id === game.currentAreaId)?.name ?? 'Talora' : ''
+  const savedAreaName = game ? activeWorld.areas.find((area) => area.id === game.currentAreaId)?.name ?? activeWorld.presentation.fallbackPlaceName : ''
 
   return (
     <main id="main-content" className="title-screen">
@@ -35,9 +35,9 @@ export function TitleScreen() {
         <div className="compass-emblem" aria-hidden="true">
           <span>N</span><i /><b>✦</b>
         </div>
-        <p className="eyebrow">Ein Abenteuer in Talora</p>
-        <h1 id="game-title">Die Morgenklinge</h1>
-        <p className="title-subtitle">Farben verblassen. Wege verlieren ihre Namen. Und ein kleiner Kompass hat sehr viel zu sagen.</p>
+        <p className="eyebrow">{activeWorld.presentation.eyebrow}</p>
+        <h1 id="game-title">{activeWorld.presentation.title}</h1>
+        <p className="title-subtitle">{activeWorld.presentation.subtitle}</p>
 
         <div className="title-actions">
           {adventureStatus === 'loading' && <p className="loading-card" role="status">Spielstand wird gesucht …</p>}
@@ -83,11 +83,11 @@ export function TitleScreen() {
             </form>
           )}
 
-          {(adventureStatus === 'invalid' || adventureStatus === 'error') && (
+          {(adventureStatus === 'incompatible' || adventureStatus === 'invalid' || adventureStatus === 'error') && (
             <div className="load-error" role="alert">
               <h2>Dein Spielstand braucht Hilfe</h2>
               <p>{loadError ?? 'Der lokale Speicher konnte nicht gelesen werden.'}</p>
-              <p>Er wurde nicht überschrieben. In den Einstellungen kannst du ihn zurücksetzen.</p>
+              <p>Er wurde nicht überschrieben. In den Einstellungen kannst du ihn zuerst exportieren und danach zurücksetzen.</p>
               <Link className="button button--secondary" to="/einstellungen">Speicherverwaltung öffnen</Link>
             </div>
           )}

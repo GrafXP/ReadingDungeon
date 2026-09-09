@@ -10,14 +10,14 @@ import { evaluateRequirement } from './requirements'
 const orders = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
 
 class Journey {
-  save: GameSave = { ...createNewGame('Reisekind'), rngState: 1 }
+  save: GameSave = { ...createNewGame('Reisekind', world), rngState: 1 }
 
   act(action: GameAction) {
     const next = reduceGame(this.save, action, world)
     expect(next, JSON.stringify(action)).not.toBe(this.save)
     // Every intermediate state, including defeat, puzzle inputs and seal pauses,
     // must survive the same export/import validation as a real browser save.
-    this.save = parseSaveImport(createSaveExport(next))
+    this.save = parseSaveImport(createSaveExport(next, world), world)
   }
 
   travel(destination: string) {
@@ -33,7 +33,8 @@ class Journey {
       seen.add(entry.id)
       for (const passage of world.passages) {
         const to = otherEnd(passage, entry.id)
-        if (to && !seen.has(to) && (evaluateRequirement(passage.requirement, this.save).met || this.save.unlockedPassageIds.includes(passage.id))) queue.push({ id: to, path: [...entry.path, { type: 'MOVE', passageId: passage.id, toAreaId: to }] })
+        const guardOpen = !passage.guardEncounterId || this.save.defeatedEncounterIds.includes(passage.guardEncounterId)
+        if (to && !seen.has(to) && guardOpen && (evaluateRequirement(passage.requirement, this.save).met || this.save.unlockedPassageIds.includes(passage.id))) queue.push({ id: to, path: [...entry.path, { type: 'MOVE', passageId: passage.id, toAreaId: to }] })
       }
     }
     throw new Error(`No legal route to ${destination}`)
@@ -70,10 +71,10 @@ class Journey {
       const combat = this.save.activeCombat
       const view = getCombatView(this.save, world)!
       if (combat.pendingSealItemId) this.act({ type: 'PLACE_SEAL', itemId: combat.pendingSealItemId })
-      else if (combat.awaitingFinalPromise) this.act({ type: 'SPEAK_PROMISE' })
+      else if (combat.awaitingFinalAction) this.act({ type: 'COMPLETE_FINAL_ACTION' })
       else if (view.move.kind === 'heavy') this.act({ type: 'DEFEND' })
       else if (this.save.player.life <= 8 && (this.save.player.inventory.apfelbrot ?? 0) > 0) this.act({ type: 'USE_ITEM', itemId: 'apfelbrot' })
-      else if (combat.enemyStance === 'guarded' || (view.enemy.airborne && combat.enemyStance !== 'vulnerable')) this.act({ type: 'DEFEND' })
+      else if (view.combatant.stance === 'guarded' || (view.enemy.airborne && view.combatant.stance !== 'vulnerable')) this.act({ type: 'DEFEND' })
       else this.act({ type: 'ATTACK' })
     }
     expect(this.save.defeatedEncounterIds, id).toContain(id)
@@ -110,8 +111,13 @@ describe('vollständige Reise mit echten Wegen, Kämpfen und Speicherprüfung', 
       // Every early guardian approach is reachable and has a safe retreat.
       for (const id of ['boss_arbor', 'boss_marea', 'boss_voltaro']) {
         journey.travel(world.encounters.find((entry) => entry.id === id)!.areaId)
-        journey.act({ type: 'START_COMBAT', encounterId: id })
-        journey.act({ type: 'FLEE' })
+        journey.act({ type: 'INSPECT', areaId: journey.save.currentAreaId })
+        expect(getAvailableActions(journey.save, world).find((action) => action.id === `combat:${id}`)).toMatchObject({
+          disabled: true,
+          blockedReason: expect.stringContaining('Morgenklinge')
+        })
+        expect(reduceGame(journey.save, { type: 'START_COMBAT', encounterId: id }, world)).toBe(journey.save)
+        journey.travel('sonnenwacht')
       }
       for (const [position, index] of giftOrder.entries()) {
         journey.gift(index)

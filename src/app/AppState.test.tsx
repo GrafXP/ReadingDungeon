@@ -5,6 +5,7 @@ import { AppStateProvider, useAppState } from './AppState'
 import { gameRepository } from '../storage/repository'
 import { createNewGame } from '../domain/game'
 import { DEFAULT_SETTINGS } from '../domain/settings'
+import { activeWorld } from '../content/world'
 
 function deferred() {
   let resolve!: () => void
@@ -19,7 +20,7 @@ async function setup() {
   return hook
 }
 beforeEach(() => {
-  vi.spyOn(gameRepository, 'loadAdventure').mockResolvedValue({ status: 'ready', value: createNewGame('Alt'), updatedAt: '' })
+  vi.spyOn(gameRepository, 'loadAdventure').mockResolvedValue({ status: 'ready', value: createNewGame('Alt', activeWorld), updatedAt: '' })
   vi.spyOn(gameRepository, 'loadSettings').mockResolvedValue({ status: 'ready', value: DEFAULT_SETTINGS, updatedAt: '' })
   vi.spyOn(gameRepository, 'saveAdventure').mockResolvedValue()
   vi.spyOn(gameRepository, 'saveSettings').mockResolvedValue()
@@ -63,7 +64,7 @@ describe('Speicherkoordination', () => {
     if (operation === 'import') vi.mocked(gameRepository.saveAdventure).mockReturnValueOnce(pending.promise)
     else vi.mocked(gameRepository.deleteAdventure).mockReturnValueOnce(pending.promise)
     let completion!: Promise<boolean>
-    act(() => { completion = operation === 'import' ? result.current.importAdventure(createNewGame('Neu')) : result.current.resetAdventure() })
+    act(() => { completion = operation === 'import' ? result.current.importAdventure(createNewGame('Neu', activeWorld)) : result.current.resetAdventure() })
     act(() => result.current.updateAdventure((save) => ({ ...save, turn: 99 })))
     expect(gameRepository.saveAdventure).toHaveBeenCalledTimes(operation === 'import' ? 1 : 0)
     await act(async () => { pending.resolve(); await completion })
@@ -73,7 +74,7 @@ describe('Speicherkoordination', () => {
   it('behält bei fehlgeschlagenem Import das alte Spiel und entsperrt Aktionen', async () => {
     const { result } = await setup()
     vi.mocked(gameRepository.saveAdventure).mockRejectedValueOnce(new Error('voll'))
-    await act(async () => { expect(await result.current.importAdventure(createNewGame('Neu'))).toBe(false) })
+    await act(async () => { expect(await result.current.importAdventure(createNewGame('Neu', activeWorld))).toBe(false) })
     expect(result.current.game?.playerName).toBe('Alt')
     act(() => result.current.updateAdventure((save) => ({ ...save, turn: 1 })))
     await waitFor(() => expect(result.current.saveStatus).toBe('saved'))

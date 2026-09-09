@@ -1,13 +1,27 @@
-import type { InteractionEffect, Requirement, WorldDefinition } from '../domain/content'
+import type {
+  DamageType,
+  InteractionEffect,
+  Requirement,
+  WorldDefinition
+} from '../domain/content'
 import { requirementItemIds } from './requirements'
 
 export interface ValidationReport {
   valid: boolean
   errors: string[]
+  contentGaps: string[]
+  missingContentIds: Record<string, string[]>
   reachableAreaIds: string[]
-  sliceGoalReachable: boolean
+  completionReachable: boolean
   freelyReachableAreaIds: string[]
 }
+
+export interface WorldValidationOptions {
+  /** Allows the Phase 1 Kantara scaffold to be loaded before its later content exists. */
+  allowIncomplete?: boolean
+}
+
+const DAMAGE_TYPES: DamageType[] = ['physical', 'fire', 'ice', 'lightning', 'light', 'shadow']
 
 function duplicateIds(values: string[]): string[] {
   const seen = new Set<string>()
@@ -19,18 +33,35 @@ function duplicateIds(values: string[]): string[] {
   return [...duplicates]
 }
 
-function requirementMet(requirement: Requirement | undefined, items: Set<string>, flags: Set<string>): boolean {
+interface SimulatedState {
+  items: Set<string>
+  flags: Set<string>
+  clues: Set<string>
+  equippedWeaponId: string | null
+  equippedArmorId: string | null
+  equippedTalismanId: string | null
+}
+
+function requirementMet(requirement: Requirement | undefined, state: SimulatedState): boolean {
   if (!requirement) return true
-  if (requirement.kind === 'item') return items.has(requirement.itemId)
-  if (requirement.kind === 'flag') return flags.has(requirement.flag)
-  if (requirement.kind === 'clue') return flags.has(`clue:${requirement.clueId}`)
-  if (requirement.kind === 'all') return requirement.requirements.every((entry) => requirementMet(entry, items, flags))
-  return requirement.requirements.some((entry) => requirementMet(entry, items, flags))
+  if (requirement.kind === 'item') return state.items.has(requirement.itemId)
+  if (requirement.kind === 'equipped') {
+    const equipped = requirement.slot === 'weapon'
+      ? state.equippedWeaponId
+      : requirement.slot === 'body'
+        ? state.equippedArmorId
+        : state.equippedTalismanId
+    return equipped === requirement.itemId && state.items.has(requirement.itemId)
+  }
+  if (requirement.kind === 'flag') return state.flags.has(requirement.flag)
+  if (requirement.kind === 'clue') return state.clues.has(requirement.clueId)
+  if (requirement.kind === 'all') return requirement.requirements.every((entry) => requirementMet(entry, state))
+  return requirement.requirements.some((entry) => requirementMet(entry, state))
 }
 
 function validateRequirement(requirement: Requirement | undefined, itemIds: Set<string>, owner: string, errors: string[]) {
   if (!requirement) return
-  if (requirement.kind === 'item' && !itemIds.has(requirement.itemId)) {
+  if ((requirement.kind === 'item' || requirement.kind === 'equipped') && !itemIds.has(requirement.itemId)) {
     errors.push(`${owner} verlangt den unbekannten Gegenstand ${requirement.itemId}.`)
   }
   if (requirement.kind === 'all' || requirement.kind === 'any') {
@@ -59,31 +90,12 @@ function validateEffects(
   }
 }
 
-function graphReachability(world: WorldDefinition): Set<string> {
-  const reachable = new Set([world.startAreaId])
+function graphReachability(world: WorldDefinition, passages = world.passages): Set<string> {
+  const reachable = new Set([world.start.areaId])
   let changed = true
   while (changed) {
     changed = false
-    for (const passage of world.passages) {
-      if (reachable.has(passage.fromAreaId) && !reachable.has(passage.toAreaId)) {
-        reachable.add(passage.toAreaId)
-        changed = true
-      }
-      if (reachable.has(passage.toAreaId) && !reachable.has(passage.fromAreaId)) {
-        reachable.add(passage.fromAreaId)
-        changed = true
-      }
-    }
-  }
-  return reachable
-}
-
-function freeGraphReachability(world: WorldDefinition): Set<string> {
-  const reachable = new Set([world.startAreaId])
-  let changed = true
-  while (changed) {
-    changed = false
-    for (const passage of world.passages.filter((entry) => !entry.requirement)) {
+    for (const passage of passages) {
       if (reachable.has(passage.fromAreaId) && !reachable.has(passage.toAreaId)) {
         reachable.add(passage.toAreaId)
         changed = true
@@ -98,60 +110,70 @@ function freeGraphReachability(world: WorldDefinition): Set<string> {
 }
 
 function simulateProgression(world: WorldDefinition) {
-  const reachable = new Set([world.startAreaId])
-  const items = new Set(['reiseschwert', 'laterne', 'apfelbrot'])
-  const flags = new Set<string>()
+  const reachable = new Set([world.start.areaId])
+  const state: SimulatedState = {
+    items: new Set(Object.entries(world.start.inventory).filter(([, count]) => count > 0).map(([id]) => id)),
+    flags: new Set<string>(),
+    clues: new Set<string>(),
+    equippedWeaponId: world.start.equippedWeaponId,
+    equippedArmorId: world.start.equippedArmorId,
+    equippedTalismanId: world.start.equippedTalismanId
+  }
   const completedInteractions = new Set<string>()
   const defeatedEncounters = new Set<string>()
   let changed = true
 
   while (changed) {
     changed = false
-    for (const areaId of [...reachable]) flags.add(`area_untersucht:${areaId}`)
+    for (const areaId of [...reachable]) state.flags.add(`area_untersucht:${areaId}`)
 
     for (const interaction of world.interactions) {
       if (completedInteractions.has(interaction.id) || !reachable.has(interaction.areaId)) continue
-      if (!requirementMet(interaction.requirement, items, flags)) continue
-      if (!requirementMet(interaction.visibilityRequirement, items, flags)) continue
+      if (!requirementMet(interaction.requirement, state) || !requirementMet(interaction.visibilityRequirement, state)) continue
       completedInteractions.add(interaction.id)
       for (const effect of interaction.effects) {
-        if (effect.kind === 'discoverClue' && !flags.has(`clue:${effect.clueId}`)) {
-          flags.add(`clue:${effect.clueId}`)
+        if (effect.kind === 'discoverClue' && !state.clues.has(effect.clueId)) {
+          state.clues.add(effect.clueId)
           changed = true
         }
-        if (effect.kind === 'addItem' && !items.has(effect.itemId)) {
-          items.add(effect.itemId)
+        if (effect.kind === 'addItem' && !state.items.has(effect.itemId)) {
+          state.items.add(effect.itemId)
           changed = true
         }
-        if (effect.kind === 'removeItem' && items.delete(effect.itemId)) changed = true
-        if (effect.kind === 'setFlag' && !flags.has(effect.flag)) {
-          flags.add(effect.flag)
+        if (effect.kind === 'removeItem' && state.items.delete(effect.itemId)) changed = true
+        if (effect.kind === 'setFlag' && !state.flags.has(effect.flag)) {
+          state.flags.add(effect.flag)
           changed = true
         }
       }
     }
 
-
     for (const encounter of world.encounters) {
       if (defeatedEncounters.has(encounter.id) || !reachable.has(encounter.areaId)) continue
-      const enemy = world.enemies.find((entry) => entry.id === encounter.enemyId)
-      if (!enemy || (enemy.kind === 'boss' && !items.has('morgenklinge'))) continue
+      if (encounter.enemyIds.some((id) => !world.enemies.some((enemy) => enemy.id === id))) continue
+      // The simulator may equip owned required gear while preparing at a safe route.
+      const requiredItems = requirementItemIds(encounter.requiredGear)
+      if (requiredItems.some((id) => !state.items.has(id))) continue
+      for (const itemId of requiredItems) {
+        const item = world.items.find((entry) => entry.id === itemId)
+        if (item?.kind === 'weapon') state.equippedWeaponId = itemId
+        if (item?.armor?.slot === 'body') state.equippedArmorId = itemId
+        if (item?.armor?.slot === 'talisman') state.equippedTalismanId = itemId
+      }
+      if (!requirementMet(encounter.requiredGear, state)) continue
       defeatedEncounters.add(encounter.id)
+      changed = true
       for (const effect of encounter.rewardEffects) {
-        if (effect.kind === 'addItem' && !items.has(effect.itemId)) {
-          items.add(effect.itemId)
-          changed = true
-        }
-        if (effect.kind === 'removeItem' && items.delete(effect.itemId)) changed = true
-        if (effect.kind === 'setFlag' && !flags.has(effect.flag)) {
-          flags.add(effect.flag)
-          changed = true
-        }
+        if (effect.kind === 'addItem') state.items.add(effect.itemId)
+        if (effect.kind === 'removeItem') state.items.delete(effect.itemId)
+        if (effect.kind === 'setFlag') state.flags.add(effect.flag)
+        if (effect.kind === 'discoverClue') state.clues.add(effect.clueId)
       }
     }
 
     for (const passage of world.passages) {
-      if (!requirementMet(passage.requirement, items, flags)) continue
+      if (!requirementMet(passage.requirement, state)) continue
+      if (passage.guardEncounterId && !defeatedEncounters.has(passage.guardEncounterId)) continue
       if (reachable.has(passage.fromAreaId) && !reachable.has(passage.toAreaId)) {
         reachable.add(passage.toAreaId)
         changed = true
@@ -162,17 +184,49 @@ function simulateProgression(world: WorldDefinition) {
       }
     }
   }
-  return { reachable, flags }
+  return { reachable, state }
 }
 
-export function validateWorld(world: WorldDefinition): ValidationReport {
+function validDamageTypes(values: DamageType[] | undefined): boolean {
+  return !values || (duplicateIds(values).length === 0 && values.every((value) => DAMAGE_TYPES.includes(value)))
+}
+
+export function validateWorld(world: WorldDefinition, options: WorldValidationOptions = {}): ValidationReport {
   const errors: string[] = []
+  const contentGaps: string[] = []
+  const missingContentIds: Record<string, string[]> = {}
   const areaIds = new Set(world.areas.map((entry) => entry.id))
   const itemIds = new Set(world.items.map((entry) => entry.id))
   const passageIds = new Set(world.passages.map((entry) => entry.id))
   const enemyIds = new Set(world.enemies.map((entry) => entry.id))
+  const encounterIds = new Set(world.encounters.map((entry) => entry.id))
+  const regionIds = new Set(world.regions.map((entry) => entry.id))
 
+  if (world.contentInventory) {
+    const inventories = [
+      ['areas', 'Orte', world.areas.map((entry) => entry.id), world.contentInventory.areas],
+      ['passages', 'Verbindungen', world.passages.map((entry) => entry.id), world.contentInventory.passages],
+      ['items', 'Gegenstände', world.items.map((entry) => entry.id), world.contentInventory.items],
+      ['interactions', 'Interaktionen', world.interactions.map((entry) => entry.id), world.contentInventory.interactions],
+      ['puzzles', 'Rätsel', (world.puzzles ?? []).map((entry) => entry.id), world.contentInventory.puzzles],
+      ['enemies', 'Gegnertypen', world.enemies.map((entry) => entry.id), world.contentInventory.enemies],
+      ['encounters', 'Begegnungen', world.encounters.map((entry) => entry.id), world.contentInventory.encounters]
+    ] as const
+    for (const [key, label, actual, expected] of inventories) {
+      const actualIds = new Set(actual)
+      const expectedIds = new Set(expected)
+      const missing = expected.filter((id) => !actualIds.has(id))
+      const unexpected = actual.filter((id) => !expectedIds.has(id))
+      missingContentIds[key] = [...missing]
+      if (missing.length > 0) contentGaps.push(`${label}: ${missing.length} von ${expected.length} fehlen.`)
+      if (unexpected.length > 0) errors.push(`${label}: nicht im Phase-0-Inventar: ${unexpected.join(', ')}.`)
+    }
+    if (!options.allowIncomplete) errors.push(...contentGaps)
+  }
+
+  if (!world.campaignId.trim()) errors.push('Die Kampagnen-ID fehlt.')
   for (const [kind, ids] of [
+    ['Regions', world.regions.map((entry) => entry.id)],
     ['Orts', world.areas.map((entry) => entry.id)],
     ['Passagen', world.passages.map((entry) => entry.id)],
     ['Gegenstands', world.items.map((entry) => entry.id)],
@@ -183,7 +237,29 @@ export function validateWorld(world: WorldDefinition): ValidationReport {
     for (const duplicate of duplicateIds(ids)) errors.push(`Doppelte ${kind}-ID: ${duplicate}.`)
   }
 
-  if (!areaIds.has(world.startAreaId)) errors.push(`Startort ${world.startAreaId} fehlt.`)
+  if (!areaIds.has(world.start.areaId)) errors.push(`Startort ${world.start.areaId} fehlt.`)
+  if (!world.areas.find((area) => area.id === world.start.areaId)?.safe) errors.push('Der Startort muss ein Rastplatz sein.')
+  if (!Number.isInteger(world.start.maxLife) || world.start.maxLife < 1) errors.push('Die Start-Lebenspunkte sind ungültig.')
+  for (const [id, count] of Object.entries(world.start.inventory)) {
+    if (!itemIds.has(id)) errors.push(`Startinventar verwendet den unbekannten Gegenstand ${id}.`)
+    if (!Number.isSafeInteger(count) || count < 1) errors.push(`Startinventar hat eine ungültige Menge für ${id}.`)
+  }
+  for (const [slot, id] of [
+    ['Waffe', world.start.equippedWeaponId],
+    ['Rüstung', world.start.equippedArmorId],
+    ['Talisman', world.start.equippedTalismanId]
+  ] as const) {
+    if (id !== null && !itemIds.has(id)) errors.push(`Start-${slot} ${id} fehlt.`)
+  }
+  if (world.start.equippedWeaponId && !world.items.find((item) => item.id === world.start.equippedWeaponId)?.weapon) errors.push('Die Startwaffe ist keine Waffe.')
+  if (world.start.equippedArmorId && world.items.find((item) => item.id === world.start.equippedArmorId)?.armor?.slot !== 'body') errors.push('Die Startrüstung gehört nicht auf den Körperplatz.')
+  if (world.start.equippedTalismanId && world.items.find((item) => item.id === world.start.equippedTalismanId)?.armor?.slot !== 'talisman') errors.push('Der Starttalisman gehört nicht auf den Talismanplatz.')
+  for (const restock of world.start.sanctuaryRestocks ?? []) {
+    if (!itemIds.has(restock.itemId) || !Number.isSafeInteger(restock.quantity) || restock.quantity < 1) errors.push(`Ungültiger Rastvorrat ${restock.itemId}.`)
+  }
+  validateRequirement(world.completionRequirement, itemIds, 'Kampagnenziel', errors)
+  validateRequirement(world.mapRevealRequirement, itemIds, 'Kartenfreigabe', errors)
+
   for (const duplicate of duplicateIds((world.puzzles ?? []).map((entry) => entry.id))) errors.push(`Doppelte Rätsel-ID: ${duplicate}.`)
   for (const puzzle of world.puzzles ?? []) {
     if (!world.interactions.some((entry) => entry.id === puzzle.interactionId && entry.areaId === puzzle.areaId)) errors.push(`Rätsel ${puzzle.id} hat keine passende Abschlussinteraktion.`)
@@ -193,30 +269,40 @@ export function validateWorld(world: WorldDefinition): ValidationReport {
       if ([control.initial, control.solution].some((value) => !Number.isSafeInteger(value) || value < 0 || value >= control.options.length)) errors.push(`Rätsel ${puzzle.id} hat ungültige Stellungen.`)
     }
     if (puzzle.sequence && (!puzzle.sequence.solution.length || puzzle.sequence.solution.some((value) => !Number.isSafeInteger(value) || value < 0 || value >= puzzle.sequence!.options.length))) errors.push(`Rätsel ${puzzle.id} hat eine ungültige Folge.`)
-    if (puzzle.maxOpenControls && [true, false].some((solution) => puzzle.controls.filter((control) => (solution ? control.solution : control.initial) === 1).length > puzzle.maxOpenControls!)) errors.push(`Rätsel ${puzzle.id} überschreitet seine Torgrenze.`)
   }
+
   for (const area of world.areas) {
+    if (!regionIds.has(area.regionId)) errors.push(`Ort ${area.id} verwendet die unbekannte Region ${area.regionId}.`)
+    const region = world.regions.find((entry) => entry.id === area.regionId)
+    if (region && region.name !== area.regionName) errors.push(`Ort ${area.id} hat nicht den Namen seiner Region ${region.name}.`)
     validateRequirement(area.sanctuaryRequirement, itemIds, `Rastplatz ${area.id}`, errors)
     for (const variant of area.variants ?? []) validateRequirement(variant.requirement, itemIds, `Ortstext ${area.id}`, errors)
     if (area.sanctuaryRequirement && !area.safe) errors.push(`Ort ${area.id} hat eine Rastplatz-Anforderung, ist aber nicht als sicher markiert.`)
   }
   for (const duplicate of duplicateIds((world.storyBeats ?? []).map((beat) => beat.id))) errors.push(`Doppelte Erzähl-ID: ${duplicate}.`)
   for (const beat of world.storyBeats ?? []) validateRequirement(beat.requirement, itemIds, `Erzählung ${beat.id}`, errors)
+
   for (const passage of world.passages) {
     if (!areaIds.has(passage.fromAreaId)) errors.push(`${passage.id} beginnt an einem unbekannten Ort: ${passage.fromAreaId}.`)
     if (!areaIds.has(passage.toAreaId)) errors.push(`${passage.id} endet an einem unbekannten Ort: ${passage.toAreaId}.`)
     if (passage.fromAreaId === passage.toAreaId) errors.push(`${passage.id} verbindet einen Ort mit sich selbst.`)
     validateRequirement(passage.requirement, itemIds, `Passage ${passage.id}`, errors)
+    if (passage.guardEncounterId) {
+      const guard = world.encounters.find((entry) => entry.id === passage.guardEncounterId)
+      if (!guard) errors.push(`${passage.id} verwendet den unbekannten Wegwächter ${passage.guardEncounterId}.`)
+      else if (![passage.fromAreaId, passage.toAreaId].includes(guard.areaId)) errors.push(`${passage.id}: Wegwächter ${guard.id} steht nicht an dieser Verbindung.`)
+      if (!passage.blockedText) errors.push(`${passage.id}: Ein Wegwächter braucht einen sichtbaren Sperrtext.`)
+    }
   }
 
   const chestIds = world.interactions.flatMap((entry) => entry.chestId ? [entry.chestId] : [])
   for (const duplicate of duplicateIds(chestIds)) errors.push(`Doppelte Truhen-ID: ${duplicate}.`)
-
   for (const interaction of world.interactions) {
     if (!areaIds.has(interaction.areaId)) errors.push(`${interaction.id} liegt an einem unbekannten Ort: ${interaction.areaId}.`)
     if (interaction.actionType === 'OPEN_CHEST' && !interaction.chestId) errors.push(`${interaction.id} ist eine Truhe ohne Truhen-ID.`)
     validateRequirement(interaction.requirement, itemIds, `Interaktion ${interaction.id}`, errors)
     validateRequirement(interaction.visibilityRequirement, itemIds, `Sichtbarkeit ${interaction.id}`, errors)
+    validateRequirement(interaction.completedWhen, itemIds, `Abschluss ${interaction.id}`, errors)
     const requiredItems = new Set(requirementItemIds(interaction.requirement))
     validateEffects(interaction.effects, `Interaktion ${interaction.id}`, itemIds, passageIds, errors)
     for (const effect of interaction.effects) {
@@ -227,19 +313,10 @@ export function validateWorld(world: WorldDefinition): ValidationReport {
   for (const enemy of world.enemies) {
     if (!Number.isInteger(enemy.maxLife) || enemy.maxLife < 1) errors.push(`Gegner ${enemy.id} hat ungültige Lebenspunkte.`)
     if (!Number.isInteger(enemy.defense) || enemy.defense < 0) errors.push(`Gegner ${enemy.id} hat ungültige Verteidigung.`)
-    if (enemy.kind === 'boss' && enemy.phaseTwoAtLife !== undefined &&
-      (!Number.isInteger(enemy.phaseTwoAtLife) || enemy.phaseTwoAtLife < 1 || enemy.phaseTwoAtLife >= enemy.maxLife)) {
-      errors.push(`Boss ${enemy.id} hat eine ungültige Phasengrenze.`)
-    }
-    if (enemy.phaseThresholds) {
-      const phases = Object.keys(enemy.movesByPhase).map(Number).sort((a, b) => a - b)
-      for (const [phaseText, threshold] of Object.entries(enemy.phaseThresholds)) {
-        const phase = Number(phaseText)
-        if (!Number.isInteger(phase) || phase < 2 || !Number.isInteger(threshold) || threshold < 1 || threshold >= enemy.maxLife || !phases.includes(phase)) {
-          errors.push(`Boss ${enemy.id} hat eine ungültige Grenze für Phase ${phaseText}.`)
-        }
-      }
-    }
+    if (![enemy.weakTo, enemy.resistantTo, enemy.immuneTo].every(validDamageTypes)) errors.push(`Gegner ${enemy.id} hat ungültige Schadensarten.`)
+    const relationships = [...(enemy.weakTo ?? []), ...(enemy.resistantTo ?? []), ...(enemy.immuneTo ?? [])]
+    if (duplicateIds(relationships).length) errors.push(`Gegner ${enemy.id} führt eine Schadensart mehrfach als Schwäche, Widerstand oder Immunität.`)
+    if (enemy.kind === 'boss' && enemy.phaseTwoAtLife !== undefined && (!Number.isInteger(enemy.phaseTwoAtLife) || enemy.phaseTwoAtLife < 1 || enemy.phaseTwoAtLife >= enemy.maxLife)) errors.push(`Boss ${enemy.id} hat eine ungültige Phasengrenze.`)
     if (enemy.phaseSealItemIds) {
       for (const [phase, sealItemId] of Object.entries(enemy.phaseSealItemIds)) {
         if (!itemIds.has(sealItemId)) errors.push(`Boss ${enemy.id} verlangt in Phase ${phase} das unbekannte Siegel ${sealItemId}.`)
@@ -248,11 +325,10 @@ export function validateWorld(world: WorldDefinition): ValidationReport {
     const phases = Object.entries(enemy.movesByPhase)
     if (phases.length === 0 || phases.some(([, moves]) => moves.length === 0)) errors.push(`Gegner ${enemy.id} hat eine leere Kampfphase.`)
     for (const [phase, moves] of phases) {
-      for (const duplicate of duplicateIds(moves.map((move) => move.id))) {
-        errors.push(`Gegner ${enemy.id} hat in Phase ${phase} die doppelte Bewegung ${duplicate}.`)
-      }
+      for (const duplicate of duplicateIds(moves.map((move) => move.id))) errors.push(`Gegner ${enemy.id} hat in Phase ${phase} die doppelte Bewegung ${duplicate}.`)
       for (const move of moves) {
         if (!Number.isInteger(move.damage) || move.damage < 0) errors.push(`Bewegung ${enemy.id}/${move.id} hat ungültigen Schaden.`)
+        if (move.damageType && !DAMAGE_TYPES.includes(move.damageType)) errors.push(`Bewegung ${enemy.id}/${move.id} hat eine unbekannte Schadensart.`)
       }
     }
   }
@@ -260,45 +336,55 @@ export function validateWorld(world: WorldDefinition): ValidationReport {
   for (const encounter of world.encounters) {
     if (!areaIds.has(encounter.areaId)) errors.push(`${encounter.id} liegt an einem unbekannten Ort: ${encounter.areaId}.`)
     if (!areaIds.has(encounter.fleeAreaId)) errors.push(`${encounter.id} flieht an einen unbekannten Ort: ${encounter.fleeAreaId}.`)
-    if (!enemyIds.has(encounter.enemyId)) errors.push(`${encounter.id} verwendet den unbekannten Gegner ${encounter.enemyId}.`)
+    if (encounter.enemyIds.length < 1 || encounter.enemyIds.length > 2) errors.push(`${encounter.id} braucht eine Liste mit einem oder zwei Gegnern.`)
+    for (const id of encounter.enemyIds) if (!enemyIds.has(id)) errors.push(`${encounter.id} verwendet den unbekannten Gegner ${id}.`)
+    if (duplicateIds(encounter.enemyIds).length) errors.push(`${encounter.id} führt denselben Kämpfer doppelt.`)
+    validateRequirement(encounter.requiredGear, itemIds, `Ausrüstungstor ${encounter.id}`, errors)
+    if (encounter.requiredGear && !encounter.gearWarning) errors.push(`${encounter.id} braucht für sein Ausrüstungstor einen Warntext.`)
     validateEffects(encounter.rewardEffects, `Begegnung ${encounter.id}`, itemIds, passageIds, errors)
   }
 
   for (const item of world.items) {
     if (item.kind === 'weapon') {
-      if (!item.weapon) {
-        errors.push(`Waffe ${item.id} hat keine Schadenswerte.`)
-      } else if (!Number.isInteger(item.weapon.minDamage) || !Number.isInteger(item.weapon.maxDamage) || item.weapon.minDamage < 1 || item.weapon.maxDamage < item.weapon.minDamage) {
-        errors.push(`Waffe ${item.id} hat einen ungültigen Schadensbereich.`)
+      if (!item.weapon) errors.push(`Waffe ${item.id} hat keine Schadenswerte.`)
+      else {
+        if (!Number.isInteger(item.weapon.minDamage) || !Number.isInteger(item.weapon.maxDamage) || item.weapon.minDamage < 1 || item.weapon.maxDamage < item.weapon.minDamage) errors.push(`Waffe ${item.id} hat einen ungültigen Schadensbereich.`)
+        if (!DAMAGE_TYPES.includes(item.weapon.damageType)) errors.push(`Waffe ${item.id} hat eine unbekannte Schadensart.`)
+        if (item.weapon.elemental && 'type' in item.weapon.elemental && !DAMAGE_TYPES.includes(item.weapon.elemental.type)) errors.push(`Waffe ${item.id} hat ein unbekanntes Element.`)
+        if (item.weapon.elemental && 'choices' in item.weapon.elemental && (!validDamageTypes(item.weapon.elemental.choices) || item.weapon.elemental.choices.includes('physical'))) errors.push(`Waffe ${item.id} hat ungültige Elementmodi.`)
       }
     }
-    if (item.kind === 'healing') {
-      if (!item.healing || !Number.isInteger(item.healing.lifeRestored) || item.healing.lifeRestored < 1) {
-        errors.push(`Heilgegenstand ${item.id} hat keine gültige Heilwirkung.`)
-      }
-    }
+    if (item.kind === 'armor' && (!item.armor || !Number.isInteger(item.armor.defense) || item.armor.defense < 0 || !validDamageTypes(item.armor.protectsFrom) || !validDamageTypes(item.armor.immuneTo))) errors.push(`Rüstung ${item.id} hat keine gültigen Schutzwerte.`)
+    if (item.kind === 'healing' && (!item.healing || !Number.isInteger(item.healing.lifeRestored) || item.healing.lifeRestored < 1)) errors.push(`Heilgegenstand ${item.id} hat keine gültige Heilwirkung.`)
   }
+
+  for (const status of world.statusEffects ?? []) {
+    if (status.maximumDuration !== undefined && (!Number.isSafeInteger(status.maximumDuration) || status.maximumDuration < 1)) errors.push(`Zustand ${status.id} hat eine ungültige Höchstdauer.`)
+    if (!validDamageTypes(status.modifiers?.protectsFrom)) errors.push(`Zustand ${status.id} schützt vor unbekannten Schadensarten.`)
+    if (status.modifiers?.damageMultiplier !== undefined && (!Number.isFinite(status.modifiers.damageMultiplier) || status.modifiers.damageMultiplier < 0 || status.modifiers.damageMultiplier > 1)) errors.push(`Zustand ${status.id} hat einen ungültigen Schadensfaktor.`)
+  }
+  for (const duplicate of duplicateIds((world.statusEffects ?? []).map((status) => status.id))) errors.push(`Doppelter Zustand: ${duplicate}.`)
 
   const connected = graphReachability(world)
-  for (const area of world.areas) {
-    if (!connected.has(area.id)) errors.push(`Ort ${area.id} ist nicht mit dem Startgraphen verbunden.`)
-  }
+  for (const area of world.areas) if (!connected.has(area.id)) errors.push(`Ort ${area.id} ist nicht mit dem Startgraphen verbunden.`)
 
   const simulated = simulateProgression(world)
-  const freelyReachable = freeGraphReachability(world)
-  const sliceGoalReachable = simulated.flags.has(world.sliceGoalFlag)
-  if (!sliceGoalReachable) errors.push(`Das Ziel ${world.sliceGoalFlag} ist mit den Inhaltsdaten nicht lösbar.`)
+  const freelyReachable = graphReachability(world, world.passages.filter((entry) => !entry.requirement && !entry.guardEncounterId))
+  const completionReachable = requirementMet(world.completionRequirement, simulated.state)
+  if (!completionReachable && !options.allowIncomplete) errors.push('Das Kampagnenziel ist mit den Inhaltsdaten nicht lösbar.')
 
   return {
     valid: errors.length === 0,
     errors,
+    contentGaps,
+    missingContentIds,
     reachableAreaIds: [...simulated.reachable],
-    sliceGoalReachable,
+    completionReachable,
     freelyReachableAreaIds: [...freelyReachable]
   }
 }
 
-export function assertWorldValid(world: WorldDefinition): void {
-  const report = validateWorld(world)
+export function assertWorldValid(world: WorldDefinition, options: WorldValidationOptions = {}): void {
+  const report = validateWorld(world, options)
   if (!report.valid) throw new Error(`Ungültige Weltdaten:\n${report.errors.join('\n')}`)
 }

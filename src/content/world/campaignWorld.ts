@@ -1,5 +1,8 @@
 import { campaignPuzzles } from './campaignPuzzles'
-import { campaignExtras } from './campaignExtras'
+import { campaignExtras, cardNotes } from './campaignExtras'
+import { campaignHintSteps } from './campaignHints'
+import { getMainGoal, getQuestViews } from './campaignJournal'
+import { getReminderGroups } from './campaignReminders'
 import { areaVariants, campaignStoryBeats } from './campaignNarrative'
 import type {
   AreaDefinition,
@@ -168,16 +171,16 @@ export const campaignPassages: PassageDefinition[] = [
 ]
 
 export const campaignItems: ItemDefinition[] = [
-  { id: 'reiseschwert', name: 'Reiseschwert', description: 'Tessas leichtes, zuverlässiges Schwert.', kind: 'weapon', weapon: { minDamage: 2, maxDamage: 4, trait: 'Sehr zuverlässig' } },
-  { id: 'waldbeil', name: 'Waldbeil', description: 'Ein breites Beil aus dem Försterhaus.', kind: 'weapon', weapon: { minDamage: 2, maxDamage: 6, trait: 'Stark, aber schwankend' } },
-  { id: 'hafenspeer', name: 'Hafenspeer', description: 'Nelas langer Speer mit breiter Spitze.', kind: 'weapon', weapon: { minDamage: 3, maxDamage: 5, trait: 'Bonus gegen Wassergegner', bonusAgainstTag: { tag: 'water', amount: 1 } } },
-  { id: 'bergfaeustel', name: 'Bergfäustel', description: 'Ein schwerer Hammer aus dem Lorenwerk.', kind: 'weapon', weapon: { minDamage: 1, maxDamage: 7, trait: 'Ignoriert einen Punkt Panzerung', armorPiercing: 1 } },
-  { id: 'kristallsaebel', name: 'Kristallsäbel', description: 'Eine starke optionale Klinge mit hellem Kristallgrat.', kind: 'weapon', weapon: { minDamage: 4, maxDamage: 6, trait: 'Hoher, verlässlicher Schaden' } },
-  { id: 'morgenklinge', name: 'Morgenklinge', description: 'Die heilige Klinge durchdringt den Schattenpanzer verdorbener Wächter.', kind: 'weapon', weapon: { minDamage: 3, maxDamage: 5, trait: 'Durchdringt Schattenpanzer' } },
+  { id: 'reiseschwert', name: 'Reiseschwert', description: 'Tessas leichtes, zuverlässiges Schwert.', kind: 'weapon', weapon: { damageType: 'physical', minDamage: 2, maxDamage: 4, trait: 'Sehr zuverlässig' } },
+  { id: 'waldbeil', name: 'Waldbeil', description: 'Ein breites Beil aus dem Försterhaus.', kind: 'weapon', weapon: { damageType: 'physical', minDamage: 2, maxDamage: 6, trait: 'Stark, aber schwankend' } },
+  { id: 'hafenspeer', name: 'Hafenspeer', description: 'Nelas langer Speer mit breiter Spitze.', kind: 'weapon', weapon: { damageType: 'physical', minDamage: 3, maxDamage: 5, trait: 'Bonus gegen Wassergegner', bonusAgainstTag: { tag: 'water', amount: 1 } } },
+  { id: 'bergfaeustel', name: 'Bergfäustel', description: 'Ein schwerer Hammer aus dem Lorenwerk.', kind: 'weapon', weapon: { damageType: 'physical', minDamage: 1, maxDamage: 7, trait: 'Ignoriert einen Punkt Panzerung', armorPiercing: 1 } },
+  { id: 'kristallsaebel', name: 'Kristallsäbel', description: 'Eine starke optionale Klinge mit hellem Kristallgrat.', kind: 'weapon', weapon: { damageType: 'physical', minDamage: 4, maxDamage: 6, trait: 'Hoher, verlässlicher Schaden' } },
+  { id: 'morgenklinge', name: 'Morgenklinge', description: 'Die heilige Klinge durchdringt den Schattenpanzer verdorbener Wächter.', kind: 'weapon', weapon: { damageType: 'light', minDamage: 3, maxDamage: 5, trait: 'Durchdringt Schattenpanzer' } },
   { id: 'apfelbrot', name: 'Apfelbrot', description: 'Stärkender Reiseproviant mit Apfelstücken.', kind: 'healing', healing: { lifeRestored: 5 } },
   { id: 'waldsalbe', name: 'Waldsalbe', description: 'Eine grüne Salbe mit beruhigendem Kräuterduft.', kind: 'healing', healing: { lifeRestored: 8 } },
-  { id: 'quellwasser', name: 'Quellwasser', description: 'Klares Wasser, das Kraft gibt und einen Grauschleier-Effekt entfernt.', kind: 'healing', healing: { lifeRestored: 6, extraEffect: 'Entfernt einen Grauschleier-Effekt' } },
-  { id: 'kuehlende_limonade', name: 'Kühlende Limonade', description: 'Heilt und schützt kurz vor dem nächsten Blitztreffer.', kind: 'healing', healing: { lifeRestored: 5, extraEffect: 'Halbiert den nächsten Blitztreffer', combatEffect: { id: 'blitzschutz', duration: 3 } } },
+  { id: 'quellwasser', name: 'Quellwasser', description: 'Klares Wasser, das Kraft gibt und einen Grauschleier-Effekt entfernt.', kind: 'healing', healing: { lifeRestored: 6, extraEffect: 'Entfernt einen Grauschleier-Effekt', clearsEffectIds: ['grauschleier'] } },
+  { id: 'kuehlende_limonade', name: 'Kühlende Limonade', description: 'Heilt und schützt kurz vor dem nächsten Blitztreffer.', kind: 'healing', healing: { lifeRestored: 5, extraEffect: 'Halbiert den nächsten Blitztreffer', combatEffect: { id: 'schutz:lightning', duration: 3 } } },
   { id: 'reiseproviant', name: 'Tessas Reiseproviant', description: 'Ein seltener Vorrat, der alle Lebenspunkte wiederherstellt.', kind: 'healing', healing: { lifeRestored: 20 } },
   { id: 'laterne', name: 'Laterne', description: 'Eine kleine Laterne für dunkle Winkel.', kind: 'tool' },
   { id: 'hebelstange', name: 'Hebelstange', description: 'Lang, stabil und nützlich bei schweren Dingen.', kind: 'tool' },
@@ -212,7 +215,7 @@ export const campaignInteractions: InteractionDefinition[] = [
   { id: 'truhe_markt_interaktion', areaId: 'alter_markt', actionType: 'OPEN_CHEST', label: 'Öffne die Blatt-Truhe', description: 'Die kleine Truhe ist nicht verschlossen.', resultText: 'In der Truhe liegt ein Töpfchen Waldsalbe.', chestId: 'truhe_markt', effects: [{ kind: 'addItem', itemId: 'waldsalbe', quantity: 1 }] },
   { id: 'symbolsteine_ordnen', areaId: 'garten_der_namen', actionType: 'COMPLETE_INTERACTION', label: 'Ordne die Symbolsteine', description: 'Die Kanten der vier Steine bilden zusammen einen Weg.', resultText: 'Wind, Licht, Wasser, Wachstum – der letzte Stein rastet ein. Darunter liegt der Archivschlüssel.', requirement: flag('area_untersucht:garten_der_namen'), blockedText: 'Untersuche zuerst die Zeichen und Kanten der Symbolsteine.', effects: [{ kind: 'addItem', itemId: 'archivschluessel', quantity: 1 }] },
   { id: 'karte_mut_finden', areaId: 'garten_der_namen', actionType: 'COMPLETE_INTERACTION', label: 'Lies die Rückseite des Steins', description: 'Ein eingerissener Kartenrand steckt hinter dem Blattstein.', resultText: 'Alvas Notiz verrät: Auch sie hatte Angst vor ihrem ersten Kampf.', requirement: flag('area_untersucht:garten_der_namen'), blockedText: 'Sieh dir zuerst alle Seiten der Symbolsteine an.', effects: [{ kind: 'discoverClue', clueId: 'karte_mut' }, { kind: 'addItem', itemId: 'kartenstift', quantity: 1 }] },
-  { id: 'morgenklinge_ziehen', areaId: 'morgen_tempel', actionType: 'COMPLETE_INTERACTION', label: 'Erwecke die Morgenklinge', description: 'Alle drei Gaben antworten im steinernen Baum.', resultText: 'Sonnenfunke, Quellträne und Windlied werden zu drei Lichtadern. Die Morgenklinge wird leicht. Auf ihr steht: «Finde den Weg. Kehre zurück. Geh nicht allein.» Kuno nennt die drei Wächter: Arbor, Marea und Voltaro. «Befreie sie mit dieser Klinge. Ihre Siegel brauchen wir gegen Raugrim.»', requirement: all(item('sonnenfunke'), item('quelltraene'), item('windlied')), blockedText: 'Die Klinge erwacht erst mit Sonnenfunke, Quellträne und Windlied.', effects: [{ kind: 'removeItem', itemId: 'sonnenfunke', quantity: 1 }, { kind: 'removeItem', itemId: 'quelltraene', quantity: 1 }, { kind: 'removeItem', itemId: 'windlied', quantity: 1 }, { kind: 'addItem', itemId: 'morgenklinge', quantity: 1 }, { kind: 'setFlag', flag: 'morgenklinge_erweckt' }] },
+  { id: 'morgenklinge_ziehen', areaId: 'morgen_tempel', actionType: 'COMPLETE_INTERACTION', label: 'Erwecke die Morgenklinge', description: 'Alle drei Gaben antworten im steinernen Baum.', resultText: 'Sonnenfunke, Quellträne und Windlied werden zu drei Lichtadern. Die Morgenklinge wird leicht. Auf ihr steht: «Finde den Weg. Kehre zurück. Geh nicht allein.» Kuno nennt die drei Wächter: Arbor, Marea und Voltaro. «Befreie sie mit dieser Klinge. Ihre Siegel brauchen wir gegen Raugrim.»', requirement: all(item('sonnenfunke'), item('quelltraene'), item('windlied')), completedWhen: flag('morgenklinge_erweckt'), blockedText: 'Die Klinge erwacht erst mit Sonnenfunke, Quellträne und Windlied.', effects: [{ kind: 'removeItem', itemId: 'sonnenfunke', quantity: 1 }, { kind: 'removeItem', itemId: 'quelltraene', quantity: 1 }, { kind: 'removeItem', itemId: 'windlied', quantity: 1 }, { kind: 'addItem', itemId: 'morgenklinge', quantity: 1 }, { kind: 'setFlag', flag: 'morgenklinge_erweckt' }] },
   { id: 'endtor_oeffnen', areaId: 'tor_der_sechs_zeichen', actionType: 'COMPLETE_INTERACTION', label: 'Zeige Klinge und Siegel', description: 'Sechs Zeichen warten auf ihr Licht.', resultText: 'Die Morgenklinge leuchtet. Wurzel, Welle und Himmel antworten. Das Tor bleibt von nun an offen.', requirement: all(item('morgenklinge'), item('wurzelsiegel'), item('gezeitensiegel'), item('himmelssiegel')), blockedText: 'Dir fehlen noch die Morgenklinge oder eines der drei Wächtersiegel.', effects: [{ kind: 'setFlag', flag: 'endtor_offen' }, { kind: 'unlockPassage', passageId: 'p52' }] },
 
   { id: 'goldbeeren_pfluecken', areaId: 'mooslichtung', actionType: 'TAKE_ITEM', label: 'Pflücke die Goldbeeren', description: 'Die richtige Pflanze leuchtet unter den längsten Morgenschatten.', resultText: 'Du findest die Goldbeeren, ohne eine einzige grüne Beere abzureissen.', requirement: flag('area_untersucht:mooslichtung'), blockedText: 'Beobachte zuerst, welche Pflanze am Morgen im Schatten steht.', effects: [{ kind: 'addItem', itemId: 'goldbeeren', quantity: 1 }] },
@@ -271,7 +274,7 @@ export const campaignEnemies: EnemyDefinition[] = [
   regularEnemy('lorenrumpel', 'Lorenrumpel', 13, 1, ['machine', 'armored'], ['radstoss', 'Radstoss', 'Ein loses Rad schwenkt in deine Richtung.', 3], ['beschleunigung', 'Beschleunigte Lore', 'Die Räder rattern immer schneller auf der geraden Schiene.', 6]),
   regularEnemy('gewittergeist', 'Gewittergeist', 12, 0, ['lightning'], ['funkenwurf', 'Funkenwurf', 'Blaue Funken sammeln sich an einer Hand.', 3], ['ladeblitz', 'Geladener Blitz', 'Der Geist hebt beide Arme; ein heller Blitz wächst dazwischen.', 6]),
   {
-    id: 'arbor', name: 'Arbor, Hüter der Wurzeln', kind: 'boss', maxLife: 22, defense: 1, tags: ['forest', 'boss'], shadowArmor: true, phaseTwoAtLife: 11,
+    id: 'arbor', name: 'Arbor, Hüter der Wurzeln', kind: 'boss', maxLife: 22, defense: 1, tags: ['forest', 'boss'], phaseTwoAtLife: 11,
     movesByPhase: {
       1: [
         { id: 'ansturm', name: 'Dornenansturm', telegraph: 'Arbor scharrt und senkt sein grosses Geweih.', icon: '♜', damage: 6, kind: 'heavy', defendNegates: true, vulnerableAfterDefend: true },
@@ -284,7 +287,7 @@ export const campaignEnemies: EnemyDefinition[] = [
     }
   },
   {
-    id: 'marea', name: 'Marea, Wächterin der Gezeiten', kind: 'boss', maxLife: 24, defense: 1, tags: ['water', 'boss'], shadowArmor: true, phaseTwoAtLife: 12,
+    id: 'marea', name: 'Marea, Wächterin der Gezeiten', kind: 'boss', maxLife: 24, defense: 1, tags: ['water', 'boss'], phaseTwoAtLife: 12,
     movesByPhase: {
       1: [
         { id: 'wellenrolle', name: 'Wellenrolle', telegraph: 'Das Wasser steigt. Marea richtet sich für eine gewaltige Rolle aus.', icon: '≋', damage: 7, kind: 'heavy', defendNegates: true, vulnerableAfterDefend: true },
@@ -299,7 +302,7 @@ export const campaignEnemies: EnemyDefinition[] = [
     }
   },
   {
-    id: 'voltaro', name: 'Voltaro, Wächter des Himmels', kind: 'boss', maxLife: 24, defense: 1, tags: ['lightning', 'machine', 'boss'], shadowArmor: true, airborne: true, phaseTwoAtLife: 12,
+    id: 'voltaro', name: 'Voltaro, Wächter des Himmels', kind: 'boss', maxLife: 24, defense: 1, tags: ['lightning', 'machine', 'boss'], airborne: true, phaseTwoAtLife: 12,
     movesByPhase: {
       1: [
         { id: 'sturzflug', name: 'Sturzflug von links', telegraph: 'Voltaro legt die Flügel an und kippt deutlich nach links.', icon: '↙', damage: 7, kind: 'heavy', defendNegates: true, vulnerableAfterDefend: true },
@@ -313,9 +316,19 @@ export const campaignEnemies: EnemyDefinition[] = [
     }
   },
   {
-    id: 'raugrim', name: 'Raugrim, der Grauschleier', kind: 'boss', maxLife: 36, defense: 1, tags: ['shadow', 'boss'], shadowArmor: true,
+    id: 'raugrim', name: 'Raugrim, der Grauschleier', kind: 'boss', maxLife: 36, defense: 1, tags: ['shadow', 'boss'],
     phaseThresholds: { 2: 24, 3: 12 },
     phaseSealItemIds: { 1: 'wurzelsiegel', 2: 'gezeitensiegel', 3: 'himmelssiegel' },
+    sealPlacementText: {
+      1: 'Du setzt das Wurzelsiegel. Wurzeln aus Licht halten den verschwindenden Boden zusammen.',
+      2: 'Du setzt das Gezeitensiegel. Klares Wasser spiegelt Raugrims wirkliche Form.'
+    },
+    finalSealText: 'Das Himmelssiegel ruft Wind durch die Kammer. Raugrim kann nicht mehr in die Schattenlücken fliehen. Jetzt fehlt nur Alvas Versprechen.',
+    finalAction: {
+      prompt: 'Alle drei Siegellichter leuchten. Die Morgenklinge wartet über dem Bannschloss.',
+      label: 'Sprich Alvas Versprechen',
+      spokenText: 'Du sprichst: «Finde den Weg. Kehre zurück. Geh nicht allein.»'
+    },
     movesByPhase: {
       1: [
         { id: 'grauer_hieb', name: 'Grauer Hieb', telegraph: 'Staub weicht vor einer unsichtbaren Klaue zurück.', icon: '◐', damage: 2, kind: 'normal' },
@@ -323,7 +336,7 @@ export const campaignEnemies: EnemyDefinition[] = [
       ],
       2: [
         { id: 'falsches_bild', name: 'Falsches Bild', telegraph: 'Raugrim zeigt eine leere Sonnenwacht, doch deine Lebenspunkte bleiben klar sichtbar.', icon: '▧', damage: 2, kind: 'normal' },
-        { id: 'schattengriff', name: 'Schattengriff', telegraph: 'Zwei Lücken im Licht bewegen sich auf dich zu. Ohne Deckung schwächt Grauschleier deinen nächsten Angriff.', icon: '◐', damage: 2, kind: 'normal', inflictedEffect: { id: 'grauschleier', duration: 1 } },
+        { id: 'schattengriff', name: 'Schattengriff', telegraph: 'Zwei Lücken im Licht bewegen sich auf dich zu. Ohne Deckung schwächt Grauschleier deinen nächsten Angriff.', icon: '◐', damage: 2, kind: 'normal', inflictedEffect: { id: 'grauschleier', duration: 1, text: 'Grauschleier schwächt deinen nächsten Angriff. Quellwasser kann ihn lösen.' } },
         { id: 'welle_vergessen', name: 'Welle des Vergessens', telegraph: 'Eine hohe graue Welle sammelt sich hinter Raugrim.', icon: '≋', damage: 7, kind: 'heavy', defendNegates: true, vulnerableAfterDefend: true }
       ],
       3: [
@@ -335,36 +348,70 @@ export const campaignEnemies: EnemyDefinition[] = [
 ]
 
 export const campaignEncounters: EncounterDefinition[] = [
-  { id: 'begegnung_rankenkrabbler', areaId: 'funkelpfad', enemyId: 'rankenkrabbler', label: 'Stelle dich dem Rankenkrabbler', description: 'Der breite Weg bleibt über einen leuchtenden Umweg frei.', fleeAreaId: 'eichenpforte', victoryText: 'Der Krabbler entrollt sich und verschwindet friedlich im Farn.', rewardEffects: [{ kind: 'setFlag', flag: 'rankenkrabbler_besiegt' }] },
-  { id: 'begegnung_schattenmotten', areaId: 'gluehgarten', enemyId: 'schattenmotte', label: 'Vertreibe die Schattenmotten', description: 'Die Motten halten Lio von der Ölpresse fern.', fleeAreaId: 'foersterhaus', victoryText: 'Die Motten flattern zu den dunklen Baumkronen. Lios Presse ist wieder frei.', rewardEffects: [{ kind: 'setFlag', flag: 'schattenmotten_besiegt' }] },
-  { id: 'begegnung_knorzwolf', areaId: 'alte_baumschule', enemyId: 'knorzwolf', label: 'Beruhige den Knorzwolf', description: 'Ein knorriges Waldwesen bewacht nur ein optionales Beet.', fleeAreaId: 'gluehgarten', victoryText: 'Der Knorzwolf schüttelt grauen Staub aus dem Fell und trottet davon.', rewardEffects: [{ kind: 'setFlag', flag: 'knorzwolf_beruhigt' }] },
-  { id: 'begegnung_netzkrabbler', areaId: 'spinnenhain', enemyId: 'netzkrabbler', label: 'Löse das Seil vom Netzkrabbler', description: 'Das Tier hält das Kletterseil fest; der Weg selbst bleibt frei.', fleeAreaId: 'funkelpfad', victoryText: 'Das Netz reisst. Der Krabbler zieht sich unverletzt in die hohen Äste zurück.', rewardEffects: [{ kind: 'setFlag', flag: 'netzkrabbler_besiegt' }] },
-  { id: 'begegnung_pfuetzenhopser', areaId: 'ueberfluteter_markt', enemyId: 'pfuetzenhopser', label: 'Stelle dich dem Pfützenhopser', description: 'Er bewacht nur einen trockenen Seitenstand und kann umgangen werden.', fleeAreaId: 'muschelhafen', victoryText: 'Der Pfützenhopser platscht ins flache Wasser und hüpft davon.', rewardEffects: [{ kind: 'setFlag', flag: 'pfuetzenhopser_besiegt' }] },
-  { id: 'begegnung_tintenqualle', areaId: 'korallengrotte', enemyId: 'tintenqualle', label: 'Vertreibe die Tintenqualle', description: 'Ihre dunkle Wolke liegt über einem optionalen Quellfach.', fleeAreaId: 'schleusenhaus', victoryText: 'Die Qualle wird durchsichtig und treibt ruhig ins Meer hinaus.', rewardEffects: [{ kind: 'setFlag', flag: 'tintenqualle_besiegt' }] },
-  { id: 'begegnung_wasserwaechter', areaId: 'gezeitentempel', enemyId: 'wasserwaechter', label: 'Fordere den Wasserwächter heraus', description: 'Der langsame Wächter steht nur vor einer Tempeltruhe.', fleeAreaId: 'versunkene_bibliothek', victoryText: 'Er senkt den Schild und wird wieder zu einer stillen Statue.', rewardEffects: [{ kind: 'setFlag', flag: 'wasserwaechter_besiegt' }] },
-  { id: 'begegnung_kupferkaefer', areaId: 'bergfuss', enemyId: 'kupferkaefer', label: 'Schalte den Kupferkäfer ab', description: 'Beide Bergwege bleiben an seiner Aufziehspur vorbei offen.', fleeAreaId: 'drei_wege_platz', victoryText: 'Der Käfer klappt seine Beine ein und tickt zufrieden statt wild.', rewardEffects: [{ kind: 'setFlag', flag: 'kupferkaefer_abgeschaltet' }] },
-  { id: 'begegnung_lorenrumpel', areaId: 'lorenwerk', enemyId: 'lorenrumpel', label: 'Stoppe den Lorenrumpel', description: 'Die beschleunigende Maschine bewacht die schwere Werktruhe.', fleeAreaId: 'kristallmine', victoryText: 'Die Lore rollt langsam in ihre Halterung und bleibt dort.', rewardEffects: [{ kind: 'setFlag', flag: 'lorenrumpel_besiegt' }] },
-  { id: 'begegnung_gewittergeist', areaId: 'himmelswerft', enemyId: 'gewittergeist', label: 'Löse den Gewittergeist', description: 'Der geladene Geist bewacht nur einen alten Aussichtsbalkon.', fleeAreaId: 'kupferhof', victoryText: 'Der Geist wird zu drei harmlosen Funken, die im Wind verlöschen.', rewardEffects: [{ kind: 'setFlag', flag: 'gewittergeist_geloest' }] },
-  { id: 'boss_arbor', areaId: 'dornenkrone', enemyId: 'arbor', label: 'Betritt trotz der schwarzen Ranken die Dornenkrone', description: 'Gewöhnliche Waffen trennen Arbors Schatten nicht. Ein früher Rückzug bleibt möglich.', fleeAreaId: 'wurzelheiligtum', victoryText: 'Die schwarzen Ranken zerplatzen wie trockene Tinte. «Ich wollte alle beschützen und liess niemanden mehr hinaus», sagt Arbor. Er legt das Wurzelsiegel vor dich. «Ich bin noch zu schwach für Raugrim. Trage mein Siegel für mich.»', rewardEffects: [{ kind: 'setFlag', flag: 'arbor_befreit' }, { kind: 'addItem', itemId: 'wurzelsiegel', quantity: 1 }, { kind: 'unlockPassage', passageId: 'p23' }] },
-  { id: 'boss_marea', areaId: 'perlenbecken', enemyId: 'marea', label: 'Stelle dich Marea und ihrem Schattenpanzer', description: 'Gewöhnliche Waffen öffnen Mareas Glas nicht. Ein früher Rückzug bleibt möglich.', fleeAreaId: 'gezeitentempel', victoryText: 'Das schwarze Glas wird zu klarem Wasser. «Ich wollte jede Geschichte behalten und vergass, dass Geschichten reisen müssen», sagt Marea. Sie gibt dir das Gezeitensiegel. «Meine Kraft kehrt langsam zurück. Mit diesem Zeichen helfe ich dir schon jetzt.»', rewardEffects: [{ kind: 'setFlag', flag: 'marea_befreit' }, { kind: 'addItem', itemId: 'gezeitensiegel', quantity: 1 }, { kind: 'unlockPassage', passageId: 'p34' }] },
-  { id: 'boss_voltaro', areaId: 'adlerhorst', enemyId: 'voltaro', label: 'Betritt trotz der schwarzen Blitzadern den Adlerhorst', description: 'Nur die Morgenklinge trennt Voltaros Schatten. Ein früher Rückzug bleibt möglich.', fleeAreaId: 'gewitterturm', victoryText: 'Die Blitzadern werden zu blauem Licht. «Ich bewachte den Himmel, bis darin kein Platz mehr für andere war», sagt Voltaro. Er gibt dir das Himmelssiegel. «Meine Flügel brauchen Ruhe. Mein Zeichen wird dich begleiten.»', rewardEffects: [{ kind: 'setFlag', flag: 'voltaro_befreit' }, { kind: 'addItem', itemId: 'himmelssiegel', quantity: 1 }] },
-  { id: 'boss_raugrim', areaId: 'weltenkammer', enemyId: 'raugrim', label: 'Beginne die letzte Verbannung', description: 'Prüfe Leben, Apfelbrot und Morgenklinge. Nach deinem ersten wirksamen Treffer bleibt der Rückweg bis zum Sieg oder zur Rettung geschlossen.', fleeAreaId: 'rand_der_nacht', victoryText: 'Morgenklinge und die drei echten Siegel gleiten ins innere Bannschloss.\n\nRaugrim wird kleiner und ferner, bis nur ein schwarzer Punkt unter dem Stein bleibt. «Ihr werdet mich wieder vergessen», flüstert er. «Darum erzählen wir die Geschichte weiter», antwortet Kuno.\n\nAuf dem Wegweiser erscheinen Buchstaben. Eine Blüte öffnet sich, ein Boot fährt hinaus, ein Windrad dreht sich. Taloras Morgen kehrt zurück. Dein Reiseschwert begleitet dich auf dem Heimweg.', rewardEffects: [{ kind: 'removeItem', itemId: 'morgenklinge', quantity: 1 }, { kind: 'removeItem', itemId: 'wurzelsiegel', quantity: 1 }, { kind: 'removeItem', itemId: 'gezeitensiegel', quantity: 1 }, { kind: 'removeItem', itemId: 'himmelssiegel', quantity: 1 }, { kind: 'setFlag', flag: 'raugrim_verbannt' }, { kind: 'setFlag', flag: 'phase5_abgeschlossen' }] }
+  { id: 'begegnung_rankenkrabbler', areaId: 'funkelpfad', enemyIds: ['rankenkrabbler'], label: 'Stelle dich dem Rankenkrabbler', description: 'Der breite Weg bleibt über einen leuchtenden Umweg frei.', fleeAreaId: 'eichenpforte', victoryText: 'Der Krabbler entrollt sich und verschwindet friedlich im Farn.', rewardEffects: [{ kind: 'setFlag', flag: 'rankenkrabbler_besiegt' }] },
+  { id: 'begegnung_schattenmotten', areaId: 'gluehgarten', enemyIds: ['schattenmotte'], label: 'Vertreibe die Schattenmotten', description: 'Die Motten halten Lio von der Ölpresse fern.', fleeAreaId: 'foersterhaus', victoryText: 'Die Motten flattern zu den dunklen Baumkronen. Lios Presse ist wieder frei.', rewardEffects: [{ kind: 'setFlag', flag: 'schattenmotten_besiegt' }] },
+  { id: 'begegnung_knorzwolf', areaId: 'alte_baumschule', enemyIds: ['knorzwolf'], label: 'Beruhige den Knorzwolf', description: 'Ein knorriges Waldwesen bewacht nur ein optionales Beet.', fleeAreaId: 'gluehgarten', victoryText: 'Der Knorzwolf schüttelt grauen Staub aus dem Fell und trottet davon.', rewardEffects: [{ kind: 'setFlag', flag: 'knorzwolf_beruhigt' }] },
+  { id: 'begegnung_netzkrabbler', areaId: 'spinnenhain', enemyIds: ['netzkrabbler'], label: 'Löse das Seil vom Netzkrabbler', description: 'Das Tier hält das Kletterseil fest; der Weg selbst bleibt frei.', fleeAreaId: 'funkelpfad', victoryText: 'Das Netz reisst. Der Krabbler zieht sich unverletzt in die hohen Äste zurück.', rewardEffects: [{ kind: 'setFlag', flag: 'netzkrabbler_besiegt' }] },
+  { id: 'begegnung_pfuetzenhopser', areaId: 'ueberfluteter_markt', enemyIds: ['pfuetzenhopser'], label: 'Stelle dich dem Pfützenhopser', description: 'Er bewacht nur einen trockenen Seitenstand und kann umgangen werden.', fleeAreaId: 'muschelhafen', victoryText: 'Der Pfützenhopser platscht ins flache Wasser und hüpft davon.', rewardEffects: [{ kind: 'setFlag', flag: 'pfuetzenhopser_besiegt' }] },
+  { id: 'begegnung_tintenqualle', areaId: 'korallengrotte', enemyIds: ['tintenqualle'], label: 'Vertreibe die Tintenqualle', description: 'Ihre dunkle Wolke liegt über einem optionalen Quellfach.', fleeAreaId: 'schleusenhaus', victoryText: 'Die Qualle wird durchsichtig und treibt ruhig ins Meer hinaus.', rewardEffects: [{ kind: 'setFlag', flag: 'tintenqualle_besiegt' }] },
+  { id: 'begegnung_wasserwaechter', areaId: 'gezeitentempel', enemyIds: ['wasserwaechter'], label: 'Fordere den Wasserwächter heraus', description: 'Der langsame Wächter steht nur vor einer Tempeltruhe.', fleeAreaId: 'versunkene_bibliothek', victoryText: 'Er senkt den Schild und wird wieder zu einer stillen Statue.', rewardEffects: [{ kind: 'setFlag', flag: 'wasserwaechter_besiegt' }] },
+  { id: 'begegnung_kupferkaefer', areaId: 'bergfuss', enemyIds: ['kupferkaefer'], label: 'Schalte den Kupferkäfer ab', description: 'Beide Bergwege bleiben an seiner Aufziehspur vorbei offen.', fleeAreaId: 'drei_wege_platz', victoryText: 'Der Käfer klappt seine Beine ein und tickt zufrieden statt wild.', rewardEffects: [{ kind: 'setFlag', flag: 'kupferkaefer_abgeschaltet' }] },
+  { id: 'begegnung_lorenrumpel', areaId: 'lorenwerk', enemyIds: ['lorenrumpel'], label: 'Stoppe den Lorenrumpel', description: 'Die beschleunigende Maschine bewacht die schwere Werktruhe.', fleeAreaId: 'kristallmine', victoryText: 'Die Lore rollt langsam in ihre Halterung und bleibt dort.', rewardEffects: [{ kind: 'setFlag', flag: 'lorenrumpel_besiegt' }] },
+  { id: 'begegnung_gewittergeist', areaId: 'himmelswerft', enemyIds: ['gewittergeist'], label: 'Löse den Gewittergeist', description: 'Der geladene Geist bewacht nur einen alten Aussichtsbalkon.', fleeAreaId: 'kupferhof', victoryText: 'Der Geist wird zu drei harmlosen Funken, die im Wind verlöschen.', rewardEffects: [{ kind: 'setFlag', flag: 'gewittergeist_geloest' }] },
+  { id: 'boss_arbor', areaId: 'dornenkrone', enemyIds: ['arbor'], label: 'Betritt die Dornenkrone', description: 'Nur die ausgerüstete Morgenklinge trennt Arbors Schatten.', fleeAreaId: 'wurzelheiligtum', victoryText: 'Die schwarzen Ranken zerplatzen wie trockene Tinte. «Ich wollte alle beschützen und liess niemanden mehr hinaus», sagt Arbor. Er legt das Wurzelsiegel vor dich. «Ich bin noch zu schwach für Raugrim. Trage mein Siegel für mich.»', requiredGear: { kind: 'equipped', slot: 'weapon', itemId: 'morgenklinge' }, gearWarning: 'Rüste vor diesem Kampf die Morgenklinge aus. Der Rückweg bleibt offen.', rewardEffects: [{ kind: 'setFlag', flag: 'arbor_befreit' }, { kind: 'addItem', itemId: 'wurzelsiegel', quantity: 1 }, { kind: 'unlockPassage', passageId: 'p23' }] },
+  { id: 'boss_marea', areaId: 'perlenbecken', enemyIds: ['marea'], label: 'Stelle dich Marea und ihrem Schattenpanzer', description: 'Nur die ausgerüstete Morgenklinge öffnet Mareas Glas.', fleeAreaId: 'gezeitentempel', victoryText: 'Das schwarze Glas wird zu klarem Wasser. «Ich wollte jede Geschichte behalten und vergass, dass Geschichten reisen müssen», sagt Marea. Sie gibt dir das Gezeitensiegel. «Meine Kraft kehrt langsam zurück. Mit diesem Zeichen helfe ich dir schon jetzt.»', requiredGear: { kind: 'equipped', slot: 'weapon', itemId: 'morgenklinge' }, gearWarning: 'Rüste vor diesem Kampf die Morgenklinge aus. Der Rückweg bleibt offen.', rewardEffects: [{ kind: 'setFlag', flag: 'marea_befreit' }, { kind: 'addItem', itemId: 'gezeitensiegel', quantity: 1 }, { kind: 'unlockPassage', passageId: 'p34' }] },
+  { id: 'boss_voltaro', areaId: 'adlerhorst', enemyIds: ['voltaro'], label: 'Betritt den Adlerhorst', description: 'Nur die ausgerüstete Morgenklinge trennt Voltaros Schatten.', fleeAreaId: 'gewitterturm', victoryText: 'Die Blitzadern werden zu blauem Licht. «Ich bewachte den Himmel, bis darin kein Platz mehr für andere war», sagt Voltaro. Er gibt dir das Himmelssiegel. «Meine Flügel brauchen Ruhe. Mein Zeichen wird dich begleiten.»', requiredGear: { kind: 'equipped', slot: 'weapon', itemId: 'morgenklinge' }, gearWarning: 'Rüste vor diesem Kampf die Morgenklinge aus. Der Rückweg bleibt offen.', rewardEffects: [{ kind: 'setFlag', flag: 'voltaro_befreit' }, { kind: 'addItem', itemId: 'himmelssiegel', quantity: 1 }] },
+  { id: 'boss_raugrim', areaId: 'weltenkammer', enemyIds: ['raugrim'], label: 'Beginne die letzte Verbannung', description: 'Prüfe Leben, Apfelbrot und Morgenklinge. Nach deinem ersten wirksamen Treffer bleibt der Rückweg bis zum Sieg oder zur Rettung geschlossen.', fleeAreaId: 'rand_der_nacht', victoryText: 'Morgenklinge und die drei echten Siegel gleiten ins innere Bannschloss.\n\nRaugrim wird kleiner und ferner, bis nur ein schwarzer Punkt unter dem Stein bleibt. «Ihr werdet mich wieder vergessen», flüstert er. «Darum erzählen wir die Geschichte weiter», antwortet Kuno.\n\nAuf dem Wegweiser erscheinen Buchstaben. Eine Blüte öffnet sich, ein Boot fährt hinaus, ein Windrad dreht sich. Taloras Morgen kehrt zurück. Dein Reiseschwert begleitet dich auf dem Heimweg.', requiredGear: { kind: 'equipped', slot: 'weapon', itemId: 'morgenklinge' }, gearWarning: 'Rüste vor diesem Kampf die Morgenklinge aus.', rewardEffects: [{ kind: 'removeItem', itemId: 'morgenklinge', quantity: 1 }, { kind: 'removeItem', itemId: 'wurzelsiegel', quantity: 1 }, { kind: 'removeItem', itemId: 'gezeitensiegel', quantity: 1 }, { kind: 'removeItem', itemId: 'himmelssiegel', quantity: 1 }, { kind: 'setFlag', flag: 'raugrim_verbannt' }, { kind: 'setFlag', flag: 'phase5_abgeschlossen' }] }
 ]
 
 export const campaignWorld: WorldDefinition = {
+  campaignId: 'talora',
+  presentation: {
+    eyebrow: 'Ein Abenteuer in Talora',
+    title: 'Die Morgenklinge',
+    subtitle: 'Farben verblassen. Wege verlieren ihre Namen. Und ein kleiner Kompass hat sehr viel zu sagen.',
+    fallbackPlaceName: 'Talora',
+    emptyQuestTitle: 'Suche den Tempel der Morgenklinge',
+    emptyQuestDescription: 'Gehe mit Kuno über den Drei-Wege-Platz zum Tempel.'
+  },
+  regions: [
+    { id: 'sonnenmark', name: 'Sonnenmark' },
+    { id: 'wisperwald', name: 'Wisperwald' },
+    { id: 'spiegelkueste', name: 'Spiegelküste' },
+    { id: 'donnerhoehe', name: 'Donnerhöhe' },
+    { id: 'verbindungswege', name: 'Verbindungswege' },
+    { id: 'jenseits_des_tors', name: 'Jenseits des Tors' }
+  ],
+  start: {
+    areaId: 'sonnenwacht',
+    maxLife: 20,
+    inventory: { reiseschwert: 1, laterne: 1, apfelbrot: 3 },
+    equippedWeaponId: 'reiseschwert',
+    equippedArmorId: null,
+    equippedTalismanId: null,
+    eventText: '{playerName}, Tessa gibt dir ein Reiseschwert, eine Laterne und drei Apfelbrote. «Die Wachen schützen die Menschen hier. Du kennst unsere Karten und kannst Kuno hören. Schau mit ihm im Tempel am Drei-Wege-Platz nach. Wenn eine Gefahr zu gross ist, kehrst du zu mir zurück.»',
+    sanctuaryRestocks: [{ itemId: 'apfelbrot', quantity: 3 }]
+  },
+  completionRequirement: { kind: 'flag', flag: 'phase5_abgeschlossen' },
+  mapRevealRequirement: { kind: 'flag', flag: 'karte_vollstaendig' },
+  journal: { getQuestViews, getMainGoal, getReminderGroups, hintSteps: campaignHintSteps, cardNotes },
+  statusEffects: [
+    { id: 'schutz:lightning', name: 'Blitzschutz', icon: 'ϟ', description: 'Halbiert den nächsten Blitztreffer.', target: 'player', modifiers: { protectsFrom: ['lightning'], damageMultiplier: 0.5 }, maximumDuration: 3 },
+    { id: 'grauschleier', name: 'Grauschleier', icon: '◐', description: 'Der nächste Angriff verursacht 1 Schaden weniger.', target: 'player', modifiers: { playerAttackDelta: -1 }, maximumDuration: 1 },
+    { id: 'offener_riss', name: 'Offener Riss', icon: '✦', description: 'Angriffe verursachen 2 Schaden mehr.', target: 'enemy', modifiers: { enemyStance: 'vulnerable' }, maximumDuration: 2 }
+  ],
   storyBeats: campaignStoryBeats,
   puzzles: campaignPuzzles,
   areas: campaignAreas.map((area) => ({
     ...area,
     variants: areaVariants[area.id],
     safe: ['sonnenwacht', 'foersterhaus', 'muschelhafen', 'kupferhof', 'rand_der_nacht'].includes(area.id),
-    sanctuaryRequirement: area.id === 'foersterhaus' ? flag('lio_geholfen') : undefined
+    sanctuaryRequirement: area.id === 'foersterhaus' ? flag('lio_geholfen') : undefined,
+    firstVisitRestocks: area.id === 'rand_der_nacht' ? [{ itemId: 'apfelbrot', quantity: 3 }] : undefined
   })),
   passages: campaignPassages,
   items: campaignItems,
   interactions: [...campaignInteractions.map((interaction) => interaction.id === 'karte_mut_finden' ? { ...interaction, effects: interaction.effects.filter((effect) => effect.kind !== 'addItem') } : interaction), ...campaignExtras],
   enemies: campaignEnemies,
-  encounters: campaignEncounters,
-  startAreaId: 'sonnenwacht',
-  sliceGoalFlag: 'phase5_abgeschlossen'
+  encounters: campaignEncounters
 }

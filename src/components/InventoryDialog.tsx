@@ -16,6 +16,7 @@ interface InventoryDialogProps {
 
 const KIND_LABELS = {
   weapon: 'Waffe',
+  armor: 'Schutzausrüstung',
   healing: 'Heilung',
   key: 'Schlüssel',
   tool: 'Werkzeug',
@@ -100,7 +101,7 @@ export function InventoryDialog({ game, world, returnFocusRef, onAction, onClose
                 aria-label={`${item.name} untersuchen, ${KIND_LABELS[item.kind]}`}
               >
                 <span className={`item-glyph item-glyph--${item.kind}`} aria-hidden="true">
-                  {item.kind === 'weapon' ? '⚔' : item.kind === 'healing' ? '♥' : item.kind === 'key' ? '◆' : item.kind === 'tool' ? '⌁' : '✦'}
+                  {item.kind === 'weapon' ? '⚔' : item.kind === 'armor' ? '◈' : item.kind === 'healing' ? '♥' : item.kind === 'key' ? '◆' : item.kind === 'tool' ? '⌁' : '✦'}
                 </span>
                 <span><strong>{item.name}</strong><small>{KIND_LABELS[item.kind]} · Untersuchen</small></span>
                 {quantity > 1 && <b aria-label={`Anzahl ${quantity}`}>{quantity}</b>}
@@ -111,7 +112,7 @@ export function InventoryDialog({ game, world, returnFocusRef, onAction, onClose
           {selectedEntry && (
             <article className="item-details" aria-live="polite">
               <div className={`item-illustration item-illustration--${selectedEntry.item.kind}`} aria-hidden="true">
-                {selectedEntry.item.kind === 'weapon' ? '⚔' : selectedEntry.item.kind === 'healing' ? '♥' : selectedEntry.item.kind === 'key' ? '◆' : selectedEntry.item.kind === 'tool' ? '⌁' : '✦'}
+                {selectedEntry.item.kind === 'weapon' ? '⚔' : selectedEntry.item.kind === 'armor' ? '◈' : selectedEntry.item.kind === 'healing' ? '♥' : selectedEntry.item.kind === 'key' ? '◆' : selectedEntry.item.kind === 'tool' ? '⌁' : '✦'}
               </div>
               <p className="item-kind">{KIND_LABELS[selectedEntry.item.kind]}</p>
               <h3>{selectedEntry.item.name}</h3>
@@ -133,7 +134,7 @@ export function InventoryDialog({ game, world, returnFocusRef, onAction, onClose
               )}
 
               <div className="item-actions">
-                {combatView && selectedEntry.item.healing && !game.activeCombat?.pendingSealItemId && !game.activeCombat?.awaitingFinalPromise && (
+                {combatView && selectedEntry.item.healing && !game.activeCombat?.pendingSealItemId && !game.activeCombat?.awaitingFinalAction && (
                   <p className="action-reason">
                     Benutzen kostet einen Kampfzug. Danach folgt «{combatView.move.name}».
                     {combatView.move.kind === 'heavy' && ' Ein schwerer Angriff steht bevor. Verteidige dich zuerst und heile bei einer ruhigeren Bewegung.'}

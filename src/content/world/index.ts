@@ -1,9 +1,11 @@
 import { assertWorldValid } from '../../engine/worldValidator'
-import { campaignWorld } from './campaignWorld'
+import { kantaraWorld } from './kantaraWorld'
 
-assertWorldValid(campaignWorld)
+// Phase 1 intentionally starts with an incomplete content scaffold. Structural
+// references must already be sound; inventory and completion gaps are reported
+// by the Phase 1 contract validator until later content phases fill them.
+assertWorldValid(kantaraWorld, { allowIncomplete: true })
 
-// Keep the original export name while older saves and components migrate to the
-// complete campaign. Content IDs from the vertical slice remain stable.
-export const phase2World = campaignWorld
-export { campaignWorld }
+export const activeWorld = kantaraWorld
+export { campaignWorld, campaignWorld as phase2World } from './campaignWorld'
+export { kantaraWorld }

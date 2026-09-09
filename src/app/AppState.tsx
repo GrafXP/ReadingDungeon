@@ -11,8 +11,9 @@ import {
 import { createNewGame, type GameSave } from '../domain/game'
 import { DEFAULT_SETTINGS, type AppSettings } from '../domain/settings'
 import { gameRepository, type LoadResult } from '../storage/repository'
+import { activeWorld } from '../content/world'
 
-type AdventureStatus = 'loading' | 'empty' | 'ready' | 'invalid' | 'error'
+type AdventureStatus = 'loading' | 'empty' | 'ready' | 'incompatible' | 'invalid' | 'error'
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 interface AppStateValue {
@@ -21,6 +22,7 @@ interface AppStateValue {
   settings: AppSettings
   settingsReady: boolean
   loadError: string | null
+  incompatibleSaveExport: string | null
   saveError: string | null
   settingsError: string | null
   saveStatus: SaveStatus
@@ -53,6 +55,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const [settingsReady, setSettingsReady] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [incompatibleSaveExport, setIncompatibleSaveExport] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -67,9 +70,10 @@ export function AppStateProvider({ children }: PropsWithChildren) {
           gameRef.current = adventureResult.value
           setGame(adventureResult.value)
         }
-        if (adventureResult.status === 'invalid' || adventureResult.status === 'error') {
+        if (adventureResult.status === 'invalid' || adventureResult.status === 'error' || adventureResult.status === 'incompatible') {
           setLoadError(adventureResult.error.message)
         }
+        if (adventureResult.status === 'incompatible') setIncompatibleSaveExport(adventureResult.exportJson)
 
         if (settingsResult.status === 'ready') {
           settingsRef.current = settingsResult.value
@@ -105,11 +109,12 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   const startAdventure = useCallback(
     async (name: string) => {
       if (replacingRef.current) return false
-      const nextGame = createNewGame(name)
+      const nextGame = createNewGame(name, activeWorld)
       gameRef.current = nextGame
       setGame(nextGame)
       setAdventureStatus('ready')
       setLoadError(null)
+      setIncompatibleSaveExport(null)
       return persistAdventure(nextGame)
     },
     [persistAdventure]
@@ -144,6 +149,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       setGame(null)
       setAdventureStatus('empty')
       setLoadError(null)
+      setIncompatibleSaveExport(null)
       setSaveError(null)
       setSaveStatus('idle')
       return true
@@ -167,6 +173,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
           setGame(nextGame)
           setAdventureStatus('ready')
           setLoadError(null)
+          setIncompatibleSaveExport(null)
         }
         return saved
       } finally {
@@ -194,6 +201,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       settings,
       settingsReady,
       loadError,
+      incompatibleSaveExport,
       saveError,
       settingsError,
       saveStatus,
@@ -210,6 +218,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       settings,
       settingsReady,
       loadError,
+      incompatibleSaveExport,
       saveError,
       settingsError,
       saveStatus,

@@ -45,7 +45,7 @@ export const campaignExtras: InteractionDefinition[] = [
     id: 'tessa_kartenstift', areaId: 'sonnenwacht', actionType: 'COMPLETE_INTERACTION', label: 'Zeige Tessa deinen Kartenrand',
     visibilityRequirement: { kind: 'any', requirements: cardRequirements },
     description: 'Tessa kennt Alvas alte Kartenschrift.', resultText: 'Tessa überreicht dir Alvas Kartenstift. «Die Ränder erzählen, wer mit ihr ging.» Benutze den Stift im Inventar, um eine verborgene Kartennotiz sichtbar zu machen.',
-    requirement: { kind: 'any', requirements: cardRequirements }, blockedText: 'Finde zuerst einen von Alvas sechs Kartenrändern.',
+    requirement: { kind: 'any', requirements: cardRequirements }, completedWhen: { kind: 'item', itemId: 'kartenstift' }, blockedText: 'Finde zuerst einen von Alvas sechs Kartenrändern.',
     effects: [{ kind: 'addItem', itemId: 'kartenstift', quantity: 1 }]
   },
   {

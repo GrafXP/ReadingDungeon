@@ -2,6 +2,7 @@ import type { WorldDefinition } from '../domain/content'
 import { createNewGame, type GameSave } from '../domain/game'
 import { getCombatView } from './combat'
 import { reduceGame } from './reducer'
+import { requirementItemIds } from './requirements'
 
 export interface BalanceResult {
   encounterId: string
@@ -17,8 +18,13 @@ export interface BalanceResult {
  */
 export function simulateCampaignBalance(world: WorldDefinition, seed = 1): BalanceResult[] {
   return world.encounters.map((encounter) => {
-    const enemy = world.enemies.find((entry) => entry.id === encounter.enemyId)!
-    const fresh = createNewGame('Testkind')
+    const fresh = createNewGame('Testkind', world)
+    const inventory = Object.fromEntries(world.items.map((item) => [item.id, item.kind === 'healing' ? 3 : 1]))
+    const requiredItems = requirementItemIds(encounter.requiredGear)
+    const requiredWeapon = world.items.find((item) => requiredItems.includes(item.id) && item.kind === 'weapon')
+    const requiredBody = world.items.find((item) => requiredItems.includes(item.id) && item.armor?.slot === 'body')
+    const requiredTalisman = world.items.find((item) => requiredItems.includes(item.id) && item.armor?.slot === 'talisman')
+    const strongestWeapon = world.items.filter((item) => item.weapon).sort((a, b) => b.weapon!.maxDamage - a.weapon!.maxDamage)[0]
     let save: GameSave = {
       ...fresh,
       currentAreaId: encounter.areaId,
@@ -26,14 +32,10 @@ export function simulateCampaignBalance(world: WorldDefinition, seed = 1): Balan
       rngState: seed,
       player: {
         ...fresh.player,
-        equippedWeaponId: enemy.kind === 'boss' ? 'morgenklinge' : 'reiseschwert',
-        inventory: {
-          ...fresh.player.inventory,
-          morgenklinge: 1,
-          wurzelsiegel: 1,
-          gezeitensiegel: 1,
-          himmelssiegel: 1
-        }
+        equippedWeaponId: requiredWeapon?.id ?? strongestWeapon?.id ?? fresh.player.equippedWeaponId,
+        equippedArmorId: requiredBody?.id ?? fresh.player.equippedArmorId,
+        equippedTalismanId: requiredTalisman?.id ?? fresh.player.equippedTalismanId,
+        inventory
       }
     }
     save = reduceGame(save, { type: 'START_COMBAT', encounterId: encounter.id }, world)
@@ -46,17 +48,18 @@ export function simulateCampaignBalance(world: WorldDefinition, seed = 1): Balan
         save = reduceGame(save, { type: 'PLACE_SEAL', itemId: combat.pendingSealItemId }, world)
         continue
       }
-      if (combat.awaitingFinalPromise) {
-        save = reduceGame(save, { type: 'SPEAK_PROMISE' }, world)
+      if (combat.awaitingFinalAction) {
+        save = reduceGame(save, { type: 'COMPLETE_FINAL_ACTION' }, world)
         continue
       }
       const view = getCombatView(save, world)
       if (!view) break
       if (view.move.kind === 'heavy') {
         save = reduceGame(save, { type: 'DEFEND' }, world)
-      } else if (save.player.life <= 8 && (save.player.inventory.apfelbrot ?? 0) > 0) {
-        save = reduceGame(save, { type: 'USE_ITEM', itemId: 'apfelbrot' }, world)
-      } else if (combat.enemyStance === 'guarded' || (view.enemy.airborne && combat.enemyStance !== 'vulnerable')) {
+      } else if (save.player.life <= 8) {
+        const healing = world.items.find((item) => item.healing && (save.player.inventory[item.id] ?? 0) > 0)
+        save = healing ? reduceGame(save, { type: 'USE_ITEM', itemId: healing.id }, world) : reduceGame(save, { type: 'ATTACK' }, world)
+      } else if (view.combatant.stance === 'guarded' || (view.enemy.airborne && view.combatant.stance !== 'vulnerable')) {
         save = reduceGame(save, { type: 'DEFEND' }, world)
       } else {
         save = reduceGame(save, { type: 'ATTACK' }, world)

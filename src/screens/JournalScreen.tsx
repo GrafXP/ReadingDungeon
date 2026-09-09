@@ -37,7 +37,7 @@ export function JournalScreen() {
           <input
             type="search"
             value={query}
-            placeholder="z. B. Truhe, Kuno, Quelle"
+            placeholder="z. B. Truhe, Hinweis, Quelle"
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>

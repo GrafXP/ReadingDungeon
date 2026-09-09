@@ -1,16 +1,103 @@
-import type { AreaId, ChestId, ClueId, EncounterId, GameFlag, ItemId, PassageId } from './game'
+import type {
+  AreaId,
+  CampaignId,
+  ChestId,
+  ClueId,
+  EncounterId,
+  GameFlag,
+  GameSave,
+  ItemId,
+  PassageId
+} from './game'
 
-export type RegionId =
-  | 'sonnenmark'
-  | 'wisperwald'
-  | 'spiegelkueste'
-  | 'donnerhoehe'
-  | 'verbindungswege'
-  | 'jenseits_des_tors'
+export type RegionId = string
+export type DamageType = 'physical' | 'fire' | 'ice' | 'lightning' | 'light' | 'shadow'
+export type GearSlot = 'body' | 'talisman'
+
+export interface RegionDefinition {
+  id: RegionId
+  name: string
+}
 
 export interface MapPosition {
   x: number
   y: number
+}
+
+export interface RestockDefinition {
+  itemId: ItemId
+  quantity: number
+}
+
+export interface CampaignStartDefinition {
+  areaId: AreaId
+  maxLife: number
+  inventory: Record<ItemId, number>
+  equippedWeaponId: ItemId | null
+  equippedArmorId: ItemId | null
+  equippedTalismanId: ItemId | null
+  weaponElementModes?: Partial<Record<ItemId, DamageType>>
+  eventText: string
+  sanctuaryRestocks?: RestockDefinition[]
+}
+
+export interface CampaignPresentation {
+  eyebrow: string
+  title: string
+  subtitle: string
+  fallbackPlaceName: string
+  emptyQuestTitle: string
+  emptyQuestDescription: string
+}
+
+export interface ContentInventoryDefinition {
+  areas: readonly AreaId[]
+  passages: readonly PassageId[]
+  items: readonly ItemId[]
+  interactions: readonly string[]
+  puzzles: readonly string[]
+  enemies: readonly string[]
+  encounters: readonly EncounterId[]
+}
+
+export interface QuestViewDefinition {
+  id: string
+  title: string
+  description: string
+  done: boolean
+  current: boolean
+  hint: string
+  hintAreaIds?: string[]
+}
+
+export interface MainGoalDefinition {
+  title: string
+  description: string
+}
+
+export type ReminderStatus = 'missing' | 'ready' | 'done'
+
+export interface ReminderStepDefinition {
+  id: string
+  label: string
+  detail: string
+  status: ReminderStatus
+  areaId?: AreaId
+}
+
+export interface ReminderGroupDefinition {
+  id: string
+  title: string
+  description: string
+  steps: ReminderStepDefinition[]
+}
+
+export interface CampaignJournalDefinition {
+  getQuestViews?(save: GameSave): QuestViewDefinition[]
+  getMainGoal?(save: GameSave): MainGoalDefinition
+  getReminderGroups?(save: GameSave): ReminderGroupDefinition[]
+  hintSteps?: Record<string, [string, string]>
+  cardNotes?: Record<string, string>
 }
 
 export interface AreaDefinition {
@@ -26,6 +113,7 @@ export interface AreaDefinition {
   inspectText: string
   /** First matching state takes precedence, including on a first visit. */
   variants?: { requirement: Requirement; description: string; inspectText?: string }[]
+  firstVisitRestocks?: RestockDefinition[]
 }
 
 export interface PassageDefinition {
@@ -37,9 +125,31 @@ export interface PassageDefinition {
   requirement?: Requirement
   blockedText?: string
   shortcut?: boolean
+  guardEncounterId?: EncounterId
 }
 
-export type ItemKind = 'weapon' | 'healing' | 'key' | 'tool' | 'quest'
+export type ItemKind = 'weapon' | 'armor' | 'healing' | 'key' | 'tool' | 'quest'
+
+export interface WeaponSkill {
+  id: string
+  name: string
+  description: string
+  cooldown: number
+  effect:
+    | { kind: 'burst'; bonusDamage: number; damageType: DamageType }
+    | { kind: 'inflict'; effectId: string; duration: number }
+    | { kind: 'interrupt' }
+    | { kind: 'ward'; effectId: string; duration: number }
+    | { kind: 'sweep' }
+}
+
+export interface ArmorDefinition {
+  slot: GearSlot
+  defense: number
+  protectsFrom?: DamageType[]
+  immuneTo?: DamageType[]
+  penalty?: { kind: 'noFlee' | 'slowSkill'; text: string }
+}
 
 export interface ItemDefinition {
   id: ItemId
@@ -49,19 +159,27 @@ export interface ItemDefinition {
   weapon?: {
     minDamage: number
     maxDamage: number
+    damageType: DamageType
+    elemental?:
+      | { type: DamageType; amount: number }
+      | { choices: DamageType[]; amount: number }
     trait: string
     armorPiercing?: number
     bonusAgainstTag?: { tag: string; amount: number }
+    skill?: WeaponSkill
   }
+  armor?: ArmorDefinition
   healing?: {
     lifeRestored: number
     extraEffect?: string
     combatEffect?: { id: string; duration: number }
+    clearsEffectIds?: string[]
   }
 }
 
 export type Requirement =
   | { kind: 'item'; itemId: ItemId; quantity?: number }
+  | { kind: 'equipped'; slot: GearSlot | 'weapon'; itemId: ItemId }
   | { kind: 'flag'; flag: GameFlag }
   | { kind: 'clue'; clueId: ClueId }
   | { kind: 'all'; requirements: Requirement[] }
@@ -85,12 +203,13 @@ export interface InteractionDefinition {
   resultText: string
   requirement?: Requirement
   visibilityRequirement?: Requirement
+  completedWhen?: Requirement
   blockedText?: string
   effects: InteractionEffect[]
   chestId?: ChestId
 }
 
-export type EnemyMoveKind = 'normal' | 'heavy' | 'guard'
+export type EnemyMoveKind = 'normal' | 'heavy' | 'guard' | 'charge' | 'shield' | 'heal'
 
 export interface EnemyMoveDefinition {
   id: string
@@ -101,8 +220,30 @@ export interface EnemyMoveDefinition {
   kind: EnemyMoveKind
   defendNegates?: boolean
   vulnerableAfterDefend?: boolean
-  damageType?: 'lightning'
-  inflictedEffect?: { id: string; duration: number }
+  defendOutcomeText?: string
+  vulnerableText?: string
+  damageType?: DamageType
+  inflictedEffect?: { id: string; duration: number; text?: string }
+}
+
+export interface StatusEffectDefinition {
+  id: string
+  name: string
+  icon: string
+  description: string
+  target: 'player' | 'enemy'
+  perTurn?: { damage: number; damageType: DamageType }
+  modifiers?: {
+    playerAttackDelta?: number
+    enemyDefenseDelta?: number
+    skipEnemyTurn?: boolean
+    addWeakness?: DamageType[]
+    enemyStance?: 'normal' | 'guarded' | 'vulnerable'
+    protectsFrom?: DamageType[]
+    damageMultiplier?: number
+  }
+  clearedByItemIds?: ItemId[]
+  maximumDuration?: number
 }
 
 export interface EnemyDefinition {
@@ -112,26 +253,43 @@ export interface EnemyDefinition {
   maxLife: number
   defense: number
   tags: string[]
-  shadowArmor?: boolean
+  weakTo?: DamageType[]
+  resistantTo?: DamageType[]
+  immuneTo?: DamageType[]
+  stealth?: boolean
   airborne?: boolean
   phaseTwoAtLife?: number
   phaseThresholds?: Record<number, number>
   phaseSealItemIds?: Record<number, ItemId>
+  sealPlacementText?: Record<number, string>
+  finalSealText?: string
+  finalAction?: { prompt: string; label: string; spokenText: string }
   movesByPhase: Record<number, EnemyMoveDefinition[]>
 }
 
 export interface EncounterDefinition {
   id: EncounterId
   areaId: AreaId
-  enemyId: string
+  enemyIds: string[]
   label: string
   description: string
   fleeAreaId: AreaId
   victoryText: string
   rewardEffects: InteractionEffect[]
+  requiredGear?: Requirement
+  gearWarning?: string
 }
 
 export interface WorldDefinition {
+  campaignId: CampaignId
+  presentation: CampaignPresentation
+  contentInventory?: ContentInventoryDefinition
+  regions: RegionDefinition[]
+  start: CampaignStartDefinition
+  completionRequirement: Requirement
+  mapRevealRequirement?: Requirement
+  statusEffects?: StatusEffectDefinition[]
+  journal?: CampaignJournalDefinition
   storyBeats?: { id: string; requirement: Requirement; text: string }[]
   puzzles?: PuzzleDefinition[]
   areas: AreaDefinition[]
@@ -140,12 +298,11 @@ export interface WorldDefinition {
   interactions: InteractionDefinition[]
   enemies: EnemyDefinition[]
   encounters: EncounterDefinition[]
-  startAreaId: AreaId
-  sliceGoalFlag: GameFlag
 }
 
 export interface PuzzleDefinition {
   id: string
+  kind?: 'controls' | 'pairing' | 'ordering' | 'grid' | 'reading' | 'weighing'
   areaId: AreaId
   interactionId: string
   title: string
