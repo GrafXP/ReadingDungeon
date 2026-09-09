@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
+    "validate:phase0": "node scripts/validate-phase0.mjs",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {

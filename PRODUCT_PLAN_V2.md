@@ -835,6 +835,11 @@ ist eine Entwurfsphase; dort bleibt die heutige App unverändert spielbar.
 
 ### Phase 0 — Verbindliche Welt- und Produktionsbibel
 
+**Status: abgeschlossen am 9. September 2026.** Die verbindlichen Tabellen
+stehen in Abschnitt 13 der `STORY_BIBLE_V2.md`; `npm run validate:phase0`
+prüft Zielzahlen, IDs, Referenzen, Graphzusammenhang, Rastziele und die
+expliziten Rückwege aller zwölf Wegwächter.
+
 - die vorhandene `STORY_BIBLE_V2.md` um die verbindlichen Inhalts- und
   Abhängigkeitstabellen dieser Phase ergänzen
 - Titel, Gegenwartskonflikt, vier Akte, Schluss, Figurenentwicklungen und die

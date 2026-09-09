@@ -18,6 +18,7 @@ npm run dev
 Weitere Prüfungen:
 
 ```bash
+npm run validate:phase0
 npm run typecheck
 npm test
 npm run test:e2e
@@ -59,7 +60,7 @@ Bereits vorhanden sind:
 
 ## Nächste Iteration
 
-Phase 0 ergänzt die vollständigen Inhalts- und Abhängigkeitstabellen der neuen
-Weltbibel. Danach folgen Kampagnentrennung, neue Kernsysteme, ein
-Kantara-Vertikalschnitt und die regionsweise Produktion der neun Regionen mit
-insgesamt 78 Orten.
+Phase 0 ist abgeschlossen: Die Weltbibel enthält die vollständigen Inhalts- und
+Abhängigkeitstabellen sowie den geprüften abstrakten Weltgraphen. Als Nächstes
+folgt Phase 1 mit Kampagnentrennung, datengetriebenem Kern und dem typisierten,
+speicherbaren Kantara-Gerüst.
