@@ -56,6 +56,7 @@ test('weist einen Talora-Import zurück und behält das laufende Kantara-Abenteu
   await page.goto('/')
   await page.getByLabel('Wie heisst du?').fill('Kantara-Kind')
   await page.getByRole('button', { name: 'Abenteuer starten' }).click()
+  await page.getByRole('link', { name: 'Weiter zum Kurierhof' }).click()
   await expect(page.getByRole('heading', { name: 'Kurierhof' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Einstellungen' }).click()

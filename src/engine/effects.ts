@@ -37,5 +37,19 @@ export function applyEffect(save: GameSave, effect: InteractionEffect, world: Wo
       return { ...save, discoveredClueIds: unique([...save.discoveredClueIds, effect.clueId]) }
     case 'unlockPassage':
       return { ...save, unlockedPassageIds: unique([...save.unlockedPassageIds, effect.passageId]) }
+    case 'equipItem': {
+      if ((save.player.inventory[effect.itemId] ?? 0) < 1) return save
+      const item = world.items.find((entry) => entry.id === effect.itemId)
+      if (item?.kind === 'weapon' && item.weapon) {
+        return { ...save, player: { ...save.player, equippedWeaponId: item.id } }
+      }
+      if (item?.kind === 'armor' && item.armor?.slot === 'body') {
+        return { ...save, player: { ...save.player, equippedArmorId: item.id } }
+      }
+      if (item?.kind === 'armor' && item.armor?.slot === 'talisman') {
+        return { ...save, player: { ...save.player, equippedTalismanId: item.id } }
+      }
+      return save
+    }
   }
 }

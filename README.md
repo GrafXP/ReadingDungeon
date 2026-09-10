@@ -28,11 +28,12 @@ npm run preview
 
 ## Stand
 
-Die aktive App startet mit dem eigenständigen Kantara-Fundament im Kurierhof
-und führt nach dem Untersuchen zum ersten Etikettenrätsel in der Sortierhalle. Der
-vollständig spielbare Talora-Prototyp bleibt als getrenntes Inhaltsmodul für
-Umsetzungsreferenz und Regressionstests erhalten, ist aber kein Kanon der neuen
-Kampagne.
+Die aktive App beginnt mit einer jederzeit im Kurierhof erneut lesbaren
+Einführung. Danach startet der vollständige Kantara-Vertikalschnitt im Kurierhof
+und führt durch Kesselbrück und die Blätterdächer bis zum ersten
+Freigabestempel. Der vollständig spielbare Talora-Prototyp bleibt als getrenntes
+Inhaltsmodul für Umsetzungsreferenz und Regressionstests erhalten, ist aber kein
+Kanon der neuen Kampagne.
 
 Bereits vorhanden sind:
 
@@ -69,12 +70,22 @@ Bereits vorhanden sind:
 - gespeicherter Kampf- und Zufallszustand, reproduzierbare Züge und verlustfreie Rettung zur letzten Raststelle;
 - gespeicherte Erkundung, wobei an einem neuen Ort zuerst **Untersuche den Ort**
   gewählt werden muss, bevor Richtungen und Aktionen erscheinen;
+- sieben fertige Orte in Kesselbrück und neun in den Blätterdächern mit
+  Erst-, Wiederbesuchs- und sichtbaren Zustandstexten;
+- der vollständige Prolog mit Meral und Klick sowie Fenns und Inas regionaler
+  Auftrag, drei Rastplätze, zwei Abkürzungen und die Kartenfläche;
+- vier eingebettete Leserätsel mit Zuordnung, Leselücken und Waage;
+- erneuerbare Astholz-, Rankenseil-, Harz-, Obstbrot- und Proviantquellen sowie
+  Briks Herstellung von Astbeil und Rindenpanzer;
+- Aststampfer als Rammstoss-Wegwächter und Kronenheber als zweiphasiger
+  Umleiter mit Verteidigung, Kapphieb, Flucht und verlustfreier Rettung;
+- Aufgabenführung und freischaltbare Regelkarten in Klicks Register;
 - Weltvalidator, automatische Balance-Simulationen sowie Logik-, Komponenten-
   und Browserprüfungen.
 
 ## Nächste Iteration
 
-Phase 0 bis Phase 2 sind abgeschlossen: Das exakte Inhaltsinventar und die
-Kampagnengrenze stehen; Kampf-, Ausrüstungs-, Register- und Leserätselregeln
-sind typisiert, spielbar, speicherbar und getestet. Als Nächstes folgt Phase 3
-mit dem vollständigen Vertikalschnitt für Kesselbrück und Blätterdächer.
+Phase 0 bis Phase 3 sind abgeschlossen: Das exakte Inhaltsinventar, die
+Kampagnengrenze und der vorzeigbare Vertikalschnitt für Kesselbrück und
+Blätterdächer stehen. Als Nächstes folgt Phase 4 mit Kanaldelta, Sturmwerft und
+den Wechselgängen.

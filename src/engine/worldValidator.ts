@@ -79,7 +79,7 @@ function validateEffects(
   errors: string[]
 ) {
   for (const effect of effects) {
-    if ((effect.kind === 'addItem' || effect.kind === 'removeItem') && !itemIds.has(effect.itemId)) {
+    if ((effect.kind === 'addItem' || effect.kind === 'removeItem' || effect.kind === 'equipItem') && !itemIds.has(effect.itemId)) {
       errors.push(`${owner} verwendet den unbekannten Gegenstand ${effect.itemId}.`)
     }
     if ((effect.kind === 'addItem' || effect.kind === 'removeItem') && (!Number.isInteger(effect.quantity) || effect.quantity < 1)) {
@@ -146,6 +146,12 @@ function simulateProgression(world: WorldDefinition) {
           changed = true
         }
         if (effect.kind === 'removeItem' && state.items.delete(effect.itemId)) changed = true
+        if (effect.kind === 'equipItem' && state.items.has(effect.itemId)) {
+          const item = world.items.find((entry) => entry.id === effect.itemId)
+          if (item?.kind === 'weapon') state.equippedWeaponId = item.id
+          if (item?.armor?.slot === 'body') state.equippedArmorId = item.id
+          if (item?.armor?.slot === 'talisman') state.equippedTalismanId = item.id
+        }
         if (effect.kind === 'setFlag' && !state.flags.has(effect.flag)) {
           state.flags.add(effect.flag)
           changed = true
@@ -173,6 +179,12 @@ function simulateProgression(world: WorldDefinition) {
         if (effect.kind === 'removeItem') state.items.delete(effect.itemId)
         if (effect.kind === 'setFlag') state.flags.add(effect.flag)
         if (effect.kind === 'discoverClue') state.clues.add(effect.clueId)
+        if (effect.kind === 'equipItem' && state.items.has(effect.itemId)) {
+          const item = world.items.find((entry) => entry.id === effect.itemId)
+          if (item?.kind === 'weapon') state.equippedWeaponId = item.id
+          if (item?.armor?.slot === 'body') state.equippedArmorId = item.id
+          if (item?.armor?.slot === 'talisman') state.equippedTalismanId = item.id
+        }
       }
     }
 
@@ -323,6 +335,8 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
   }
   for (const duplicate of duplicateIds((world.storyBeats ?? []).map((beat) => beat.id))) errors.push(`Doppelte Erzähl-ID: ${duplicate}.`)
   for (const beat of world.storyBeats ?? []) validateRequirement(beat.requirement, itemIds, `Erzählung ${beat.id}`, errors)
+  for (const duplicate of duplicateIds((world.ruleCards ?? []).map((card) => card.id))) errors.push(`Doppelte Regelkarten-ID: ${duplicate}.`)
+  for (const card of world.ruleCards ?? []) validateRequirement(card.requirement, itemIds, `Regelkarte ${card.id}`, errors)
 
   for (const passage of world.passages) {
     if (!areaIds.has(passage.fromAreaId)) errors.push(`${passage.id} beginnt an einem unbekannten Ort: ${passage.fromAreaId}.`)
@@ -368,7 +382,9 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
       const elemental = item.weapon.elemental
       return [item.weapon.damageType, ...(elemental ? 'type' in elemental ? [elemental.type] : elemental.choices : [])]
     }))
-    for (const weakness of enemy.weakTo ?? []) if (!availableDamageTypes.has(weakness)) errors.push(`Gegner ${enemy.id} ist nur gegen die nicht verfügbare Schadensart ${weakness} schwach.`)
+    if (!options.allowIncomplete) {
+      for (const weakness of enemy.weakTo ?? []) if (!availableDamageTypes.has(weakness)) errors.push(`Gegner ${enemy.id} ist nur gegen die nicht verfügbare Schadensart ${weakness} schwach.`)
+    }
     if (enemy.kind === 'boss' && enemy.phaseTwoAtLife !== undefined && (!Number.isInteger(enemy.phaseTwoAtLife) || enemy.phaseTwoAtLife < 1 || enemy.phaseTwoAtLife >= enemy.maxLife)) errors.push(`Boss ${enemy.id} hat eine ungültige Phasengrenze.`)
     if (enemy.phaseSealItemIds) {
       for (const [phase, sealItemId] of Object.entries(enemy.phaseSealItemIds)) {

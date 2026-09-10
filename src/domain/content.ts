@@ -48,6 +48,14 @@ export interface CampaignPresentation {
   fallbackPlaceName: string
   emptyQuestTitle: string
   emptyQuestDescription: string
+  introduction?: {
+    eyebrow: string
+    title: string
+    lead: string
+    story: string[]
+    basics: { title: string; text: string }[]
+    firstStep: string
+  }
 }
 
 export interface ContentInventoryDefinition {
@@ -98,6 +106,13 @@ export interface CampaignJournalDefinition {
   getReminderGroups?(save: GameSave): ReminderGroupDefinition[]
   hintSteps?: Record<string, [string, string]>
   cardNotes?: Record<string, string>
+}
+
+export interface RuleCardDefinition {
+  id: string
+  title: string
+  description: string
+  requirement: Requirement
 }
 
 export interface AreaDefinition {
@@ -193,6 +208,7 @@ export type InteractionEffect =
   | { kind: 'setFlag'; flag: GameFlag }
   | { kind: 'discoverClue'; clueId: ClueId }
   | { kind: 'unlockPassage'; passageId: PassageId }
+  | { kind: 'equipItem'; itemId: ItemId }
 
 export interface InteractionDefinition {
   id: string
@@ -207,6 +223,8 @@ export interface InteractionDefinition {
   blockedText?: string
   effects: InteractionEffect[]
   chestId?: ChestId
+  /** Makes a harvested source available again after the next rest. */
+  restockAfterRest?: boolean
 }
 
 export type EnemyMoveKind = 'normal' | 'heavy' | 'guard' | 'charge' | 'shield' | 'heal'
@@ -293,6 +311,7 @@ export interface WorldDefinition {
   mapRevealRequirement?: Requirement
   statusEffects?: StatusEffectDefinition[]
   journal?: CampaignJournalDefinition
+  ruleCards?: RuleCardDefinition[]
   storyBeats?: { id: string; requirement: Requirement; text: string }[]
   puzzles?: PuzzleDefinition[]
   areas: AreaDefinition[]

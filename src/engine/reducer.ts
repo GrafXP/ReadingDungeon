@@ -117,7 +117,11 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
     if (!area?.safe || !evaluateRequirement(area.sanctuaryRequirement, save).met) return save
     const restocks = world.start.sanctuaryRestocks ?? []
     const fullyStocked = restocks.every((restock) => (save.player.inventory[restock.itemId] ?? 0) >= restock.quantity)
-    if (save.player.life === save.player.maxLife && fullyStocked && save.lastSanctuaryId === area.id) return save
+    const resetFlags = new Set(world.interactions
+      .filter((interaction) => interaction.restockAfterRest)
+      .map((interaction) => `interaktion:${interaction.id}`))
+    const sourcesNeedRestock = save.flags.some((flag) => resetFlags.has(flag))
+    if (save.player.life === save.player.maxLife && fullyStocked && !sourcesNeedRestock && save.lastSanctuaryId === area.id) return save
     const inventory = { ...save.player.inventory }
     for (const restock of restocks) inventory[restock.itemId] = Math.max(restock.quantity, inventory[restock.itemId] ?? 0)
     return withEvent({
@@ -127,7 +131,8 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
         ...save.player,
         life: save.player.maxLife,
         inventory
-      }
+      },
+      flags: save.flags.filter((flag) => !resetFlags.has(flag))
     }, `Du rastest in ${area.name}. Deine Lebenspunkte und Vorräte sind wieder bereit.`, `rest:${area.id}`)
   }
 

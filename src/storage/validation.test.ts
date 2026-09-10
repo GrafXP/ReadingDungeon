@@ -28,8 +28,8 @@ describe('Spielstandprüfung', () => {
       metEnemyIds: []
     })
     expect(validated.player).toMatchObject({
-      equippedWeaponId: 'item_weapon_kurierklinge',
-      equippedArmorId: 'item_armor_kurierwams',
+      equippedWeaponId: null,
+      equippedArmorId: null,
       equippedTalismanId: null,
       weaponElementModes: {}
     })

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
 import { InventoryDialog } from '../components/InventoryDialog'
 import { CombatPanel } from '../components/CombatPanel'
@@ -67,6 +68,11 @@ export function PlayScreen() {
           </div>
           <div className="location-tools">
             {sanctuaryOpen && <span className="safe-badge"><span aria-hidden="true">⌂</span> Sicher</span>}
+            {view.area.id === activeWorld.start.areaId && !game.activeCombat && (
+              <Link className="icon-button introduction-revisit" to="/einfuehrung" aria-label="Einführung noch einmal lesen">
+                <span aria-hidden="true">?</span> Einführung
+              </Link>
+            )}
             <button ref={inventoryButtonRef} className="inventory-button" onClick={() => setInventoryOpen(true)}>
               <span aria-hidden="true">▦</span> Inventar
             </button>

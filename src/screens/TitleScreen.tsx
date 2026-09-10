@@ -17,7 +17,7 @@ export function TitleScreen() {
     setStarting(true)
     const saved = await startAdventure(name)
     setStarting(false)
-    if (saved) navigate('/spiel')
+    if (saved) navigate('/einfuehrung')
   }
 
   const abandonAndShowForm = async () => {

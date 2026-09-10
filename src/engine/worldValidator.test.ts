@@ -4,23 +4,23 @@ import type { WorldDefinition } from '../domain/content'
 import { validateWorld } from './worldValidator'
 
 describe('Weltvalidator', () => {
-  it('macht alle noch fehlenden Phase-0-Inhaltsgruppen im Kantara-Gerüst sichtbar', () => {
+  it('macht alle noch fehlenden Phase-0-Inhaltsgruppen nach dem Phase-3-Schnitt sichtbar', () => {
     const scaffold = validateWorld(kantaraWorld, { allowIncomplete: true })
 
     expect(scaffold.valid).toBe(true)
     expect(scaffold.completionReachable).toBe(false)
     expect(scaffold.contentGaps).toEqual([
-      'Orte: 76 von 78 fehlen.',
-      'Verbindungen: 107 von 108 fehlen.',
-      'Gegenstände: 79 von 85 fehlen.',
-      'Interaktionen: 110 von 110 fehlen.',
-      'Rätsel: 17 von 18 fehlen.',
-      'Gegnertypen: 39 von 39 fehlen.',
-      'Begegnungen: 48 von 48 fehlen.'
+      'Orte: 62 von 78 fehlen.',
+      'Verbindungen: 87 von 108 fehlen.',
+      'Gegenstände: 65 von 85 fehlen.',
+      'Interaktionen: 92 von 110 fehlen.',
+      'Rätsel: 14 von 18 fehlen.',
+      'Gegnertypen: 32 von 39 fehlen.',
+      'Begegnungen: 40 von 48 fehlen.'
     ])
     expect(scaffold.missingContentIds.areas).not.toContain('kb_sortierhalle')
     expect(scaffold.missingContentIds.areas).not.toContain('kb_kurierhof')
-    expect(scaffold.missingContentIds.items).toContain('item_weapon_astbeil')
+    expect(scaffold.missingContentIds.items).not.toContain('item_weapon_astbeil')
     expect(scaffold.missingContentIds.items).not.toContain('item_weapon_kurierklinge')
     expect(validateWorld(kantaraWorld).valid).toBe(false)
   })

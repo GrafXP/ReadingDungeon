@@ -102,7 +102,8 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
   if (area.safe && evaluateRequirement(area.sanctuaryRequirement, save).met) {
     const restocks = world.start.sanctuaryRestocks ?? []
     const fullyStocked = restocks.every((restock) => (save.player.inventory[restock.itemId] ?? 0) >= restock.quantity)
-    const fullyRested = save.player.life === save.player.maxLife && fullyStocked && save.lastSanctuaryId === area.id
+    const depletedSources = world.interactions.some((interaction) => interaction.restockAfterRest && isInteractionComplete(interaction, save))
+    const fullyRested = save.player.life === save.player.maxLife && fullyStocked && !depletedSources && save.lastSanctuaryId === area.id
     const restockText = restocks.length > 0
       ? restocks.map((restock) => `${world.items.find((item) => item.id === restock.itemId)?.name ?? restock.itemId} auf ${restock.quantity}`).join(', ')
       : 'deine Reisevorbereitung'
@@ -110,7 +111,7 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
       id: `rest:${area.id}`,
       kind: 'interaction',
       label: fullyRested ? 'Rastplatz prüfen' : 'Raste und fülle Vorräte auf',
-      description: fullyRested ? 'Du bist ausgeruht und vollständig vorbereitet.' : `Heilt vollständig und ergänzt ${restockText}.`,
+      description: fullyRested ? 'Du bist ausgeruht und vollständig vorbereitet.' : `Heilt vollständig, ergänzt ${restockText} und erneuert besuchte Materialquellen.`,
       icon: '⌂',
       disabled: fullyRested,
       blockedReason: fullyRested ? 'Du bist bereits vollständig vorbereitet.' : undefined,

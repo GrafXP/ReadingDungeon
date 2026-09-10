@@ -59,7 +59,12 @@ export function MapScreen() {
 
   const knownAreas = activeWorld.areas.filter((area) => knownIds.has(area.id))
   const knownPassages = activeWorld.passages.filter((passage) => knownIds.has(passage.fromAreaId) && knownIds.has(passage.toAreaId))
-  const blockedPassages = knownPassages.filter((passage) => !evaluateRequirement(passage.requirement, game).met && !game.unlockedPassageIds.includes(passage.id))
+  const isPassageBlocked = (passage: (typeof activeWorld.passages)[number]) => {
+    const requirementBlocked = !evaluateRequirement(passage.requirement, game).met && !game.unlockedPassageIds.includes(passage.id)
+    const guardBlocked = Boolean(passage.guardEncounterId && !game.defeatedEncounterIds.includes(passage.guardEncounterId))
+    return requirementBlocked || guardBlocked
+  }
+  const blockedPassages = knownPassages.filter(isPassageBlocked)
   const progressByArea = new Map(knownAreas.map((area) => [area.id, getMapAreaProgress(game, activeWorld, area.id)]))
   const reminderAreaIds = new Set(getReminderGroups(game, activeWorld).flatMap((group) => group.steps.filter((step) => step.status !== 'done' && step.areaId).map((step) => step.areaId!)))
   const mapStats = {
@@ -106,7 +111,7 @@ export function MapScreen() {
           {knownPassages.map((passage) => {
             const from = activeWorld.areas.find((area) => area.id === passage.fromAreaId)!
             const to = activeWorld.areas.find((area) => area.id === passage.toAreaId)!
-            const blocked = !evaluateRequirement(passage.requirement, game).met && !game.unlockedPassageIds.includes(passage.id)
+            const blocked = isPassageBlocked(passage)
             const middle = { x: (from.mapPosition.x + to.mapPosition.x) / 2, y: (from.mapPosition.y + to.mapPosition.y) / 2 }
             return (
               <g key={passage.id}>
@@ -165,7 +170,7 @@ export function MapScreen() {
                 {progress.open.length > 0 && <p className="map-open-detail"><strong>Jetzt möglich:</strong> {progress.open.map((task) => task.label).join(' · ')}</p>}
                 {progress.blocked.map((task) => <p className="blocked-reason" key={task.label}><strong>Noch nötig für «{task.label}»:</strong> {task.detail}</p>)}
                 {progress.state === 'clear' && <p className="map-clear-detail">✓ Hier ist derzeit nichts mehr offen.</p>}
-                {knownPassages.filter((passage) => (passage.fromAreaId === area.id || passage.toAreaId === area.id) && !evaluateRequirement(passage.requirement, game).met && !game.unlockedPassageIds.includes(passage.id)).map((passage) => <p className="blocked-reason" key={passage.id}>Gesperrt: {passage.fromAreaId === area.id ? passage.labelFrom : passage.labelTo}. {passage.blockedText}</p>)}
+                {knownPassages.filter((passage) => (passage.fromAreaId === area.id || passage.toAreaId === area.id) && isPassageBlocked(passage)).map((passage) => <p className="blocked-reason" key={passage.id}>Gesperrt: {passage.fromAreaId === area.id ? passage.labelFrom : passage.labelTo}. {passage.blockedText}</p>)}
               </li>
             )
           })}

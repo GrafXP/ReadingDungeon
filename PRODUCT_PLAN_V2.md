@@ -927,6 +927,11 @@ aber noch nicht an eine grosse Menge unfertiger Raumtexte gekoppelt.
 
 ### Phase 3 — Vertikalschnitt: Kesselbrück und Blätterdächer
 
+**Status: abgeschlossen am 10. September 2026.** Der vollständige Weg vom
+Kurierhof bis zum Blätterstempel ist mit finalen Orts- und Zustandstexten,
+Aufgabenführung, erneuerbaren Werkstoffen, Herstellung, Registerkarten,
+Leserätseln und den beiden Wegwächtern auf Desktop und Telefon spielbar.
+
 - alle 7 Orte von Kesselbrück und alle 9 Orte der Blätterdächer mit finalen
   Ersttexten, Wiederbesuchstexten, Figuren und sichtbaren Zustandsänderungen
   umsetzen
