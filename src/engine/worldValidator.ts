@@ -4,6 +4,7 @@ import type {
   Requirement,
   WorldDefinition
 } from '../domain/content'
+import { getPuzzleKind } from './puzzles'
 import { requirementItemIds } from './requirements'
 
 export interface ValidationReport {
@@ -91,7 +92,11 @@ function validateEffects(
 }
 
 function graphReachability(world: WorldDefinition, passages = world.passages): Set<string> {
-  const reachable = new Set([world.start.areaId])
+  return graphReachabilityFrom(world.start.areaId, passages)
+}
+
+function graphReachabilityFrom(startAreaId: string, passages: WorldDefinition['passages']): Set<string> {
+  const reachable = new Set([startAreaId])
   let changed = true
   while (changed) {
     changed = false
@@ -201,6 +206,7 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
   const enemyIds = new Set(world.enemies.map((entry) => entry.id))
   const encounterIds = new Set(world.encounters.map((entry) => entry.id))
   const regionIds = new Set(world.regions.map((entry) => entry.id))
+  const statusIds = new Set((world.statusEffects ?? []).map((entry) => entry.id))
 
   if (world.contentInventory) {
     const inventories = [
@@ -262,13 +268,49 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
 
   for (const duplicate of duplicateIds((world.puzzles ?? []).map((entry) => entry.id))) errors.push(`Doppelte Rätsel-ID: ${duplicate}.`)
   for (const puzzle of world.puzzles ?? []) {
-    if (!world.interactions.some((entry) => entry.id === puzzle.interactionId && entry.areaId === puzzle.areaId)) errors.push(`Rätsel ${puzzle.id} hat keine passende Abschlussinteraktion.`)
-    if (!puzzle.controls.length && !puzzle.sequence?.solution.length) errors.push(`Rätsel ${puzzle.id} hat keine Bedienelemente.`)
+    if (puzzle.interactionId && !world.interactions.some((entry) => entry.id === puzzle.interactionId && entry.areaId === puzzle.areaId)) errors.push(`Rätsel ${puzzle.id} hat keine passende Abschlussinteraktion.`)
+    if (!puzzle.interactionId && !puzzle.completion) errors.push(`Rätsel ${puzzle.id} hat keinen Abschluss.`)
+    if (puzzle.interactionId && puzzle.completion) errors.push(`Rätsel ${puzzle.id} hat zwei verschiedene Abschlüsse.`)
+    if (puzzle.completion) validateEffects(puzzle.completion.effects, `Rätsel ${puzzle.id}`, itemIds, passageIds, errors)
+    const kind = getPuzzleKind(puzzle)
+    if ((kind === 'controls' || kind === 'sequence') && !puzzle.controls.length && !puzzle.sequence?.solution.length) errors.push(`Rätsel ${puzzle.id} hat keine Bedienelemente.`)
     if (duplicateIds(puzzle.controls.map((control) => control.id)).length || puzzle.controls.some((control) => control.id === 'sequence')) errors.push(`Rätsel ${puzzle.id} hat doppelte oder reservierte Bedienelemente.`)
     for (const control of puzzle.controls) {
       if ([control.initial, control.solution].some((value) => !Number.isSafeInteger(value) || value < 0 || value >= control.options.length)) errors.push(`Rätsel ${puzzle.id} hat ungültige Stellungen.`)
     }
     if (puzzle.sequence && (!puzzle.sequence.solution.length || puzzle.sequence.solution.some((value) => !Number.isSafeInteger(value) || value < 0 || value >= puzzle.sequence!.options.length))) errors.push(`Rätsel ${puzzle.id} hat eine ungültige Folge.`)
+    if (kind === 'pairing') {
+      const pairing = puzzle.pairing
+      const leftIds = pairing?.left.map((item) => item.id) ?? []
+      const rightIds = pairing?.right.map((item) => item.id) ?? []
+      const solutionEntries = Object.entries(pairing?.solution ?? {})
+      if (!pairing || !leftIds.length || leftIds.length !== rightIds.length || duplicateIds(leftIds).length || duplicateIds(rightIds).length || solutionEntries.length !== leftIds.length || solutionEntries.some(([left, right]) => !leftIds.includes(left) || !rightIds.includes(right)) || duplicateIds(solutionEntries.map(([, right]) => right)).length) errors.push(`Rätsel ${puzzle.id} hat ungültige Paare.`)
+    }
+    if (kind === 'ordering') {
+      const ordering = puzzle.ordering
+      const ids = ordering?.items.map((item) => item.id) ?? []
+      if (!ordering || ids.length < 2 || duplicateIds(ids).length || ordering.solution.length !== ids.length || new Set(ordering.solution).size !== ordering.solution.length || ordering.solution.some((id) => !ids.includes(id))) errors.push(`Rätsel ${puzzle.id} hat eine ungültige Reihenfolge.`)
+    }
+    if (kind === 'grid') {
+      const grid = puzzle.grid
+      const cellCount = grid ? grid.width * grid.height : 0
+      const validCell = (cell: number) => Number.isSafeInteger(cell) && cell >= 0 && cell < cellCount && !grid?.blocked?.includes(cell)
+      const adjacent = (first: number, second: number) => Boolean(grid && Math.abs(Math.floor(first / grid.width) - Math.floor(second / grid.width)) + Math.abs((first % grid.width) - (second % grid.width)) === 1)
+      if (!grid || grid.width < 1 || grid.width > 4 || grid.height < 1 || grid.height > 4 || !grid.solution.length || grid.solution[0] !== grid.start || grid.solution.at(-1) !== grid.goal || !grid.solution.every(validCell) || grid.solution.some((cell, index) => index > 0 && !adjacent(grid.solution[index - 1], cell))) errors.push(`Rätsel ${puzzle.id} hat ein ungültiges Wegfeld.`)
+    }
+    if (kind === 'reading') {
+      const reading = puzzle.reading
+      if (!reading || !reading.sourceText.trim() || !reading.prompts.length || duplicateIds(reading.prompts.map((prompt) => prompt.id)).length || reading.prompts.some((prompt) => !Number.isSafeInteger(prompt.solution) || prompt.solution < 0 || prompt.solution >= prompt.options.length)) errors.push(`Rätsel ${puzzle.id} hat einen ungültigen Lesetext.`)
+    }
+    if (kind === 'weighing') {
+      const weighing = puzzle.weighing
+      const ids = weighing?.items.map((item) => item.id) ?? []
+      const solution = Object.entries(weighing?.solution ?? {})
+      const leftWeight = weighing?.items.filter((item) => weighing.solution[item.id] === 'left').reduce((sum, item) => sum + item.weight, 0)
+      const rightWeight = weighing?.items.filter((item) => weighing.solution[item.id] === 'right').reduce((sum, item) => sum + item.weight, 0)
+      if (!weighing || ids.length < 2 || duplicateIds(ids).length || weighing.items.some((item) => !Number.isInteger(item.weight) || item.weight < 1) || solution.length !== ids.length || solution.some(([id, side]) => !ids.includes(id) || !['left', 'right', 'off'].includes(side)) || leftWeight !== rightWeight) errors.push(`Rätsel ${puzzle.id} hat eine ungültige Waage.`)
+    }
+    if (puzzle.hints && (puzzle.hints.length !== 3 || puzzle.hints.some((hint) => !hint.trim()))) errors.push(`Rätsel ${puzzle.id} braucht drei vollständige Hinweise.`)
   }
 
   for (const area of world.areas) {
@@ -292,6 +334,11 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
       if (!guard) errors.push(`${passage.id} verwendet den unbekannten Wegwächter ${passage.guardEncounterId}.`)
       else if (![passage.fromAreaId, passage.toAreaId].includes(guard.areaId)) errors.push(`${passage.id}: Wegwächter ${guard.id} steht nicht an dieser Verbindung.`)
       if (!passage.blockedText) errors.push(`${passage.id}: Ein Wegwächter braucht einen sichtbaren Sperrtext.`)
+      if (guard) {
+        const escapeGraph = graphReachabilityFrom(guard.areaId, world.passages.filter((entry) => entry.id !== passage.id))
+        if (!escapeGraph.has(world.start.areaId)) errors.push(`${passage.id}: Wegwächter ${guard.id} sperrt den einzigen Rückweg zum Startgebiet.`)
+        if (!world.areas.some((area) => area.safe && escapeGraph.has(area.id))) errors.push(`${passage.id}: Wegwächter ${guard.id} sperrt den letzten Weg zu einem Rastplatz.`)
+      }
     }
   }
 
@@ -316,6 +363,12 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
     if (![enemy.weakTo, enemy.resistantTo, enemy.immuneTo].every(validDamageTypes)) errors.push(`Gegner ${enemy.id} hat ungültige Schadensarten.`)
     const relationships = [...(enemy.weakTo ?? []), ...(enemy.resistantTo ?? []), ...(enemy.immuneTo ?? [])]
     if (duplicateIds(relationships).length) errors.push(`Gegner ${enemy.id} führt eine Schadensart mehrfach als Schwäche, Widerstand oder Immunität.`)
+    const availableDamageTypes = new Set(world.items.flatMap((item) => {
+      if (!item.weapon) return []
+      const elemental = item.weapon.elemental
+      return [item.weapon.damageType, ...(elemental ? 'type' in elemental ? [elemental.type] : elemental.choices : [])]
+    }))
+    for (const weakness of enemy.weakTo ?? []) if (!availableDamageTypes.has(weakness)) errors.push(`Gegner ${enemy.id} ist nur gegen die nicht verfügbare Schadensart ${weakness} schwach.`)
     if (enemy.kind === 'boss' && enemy.phaseTwoAtLife !== undefined && (!Number.isInteger(enemy.phaseTwoAtLife) || enemy.phaseTwoAtLife < 1 || enemy.phaseTwoAtLife >= enemy.maxLife)) errors.push(`Boss ${enemy.id} hat eine ungültige Phasengrenze.`)
     if (enemy.phaseSealItemIds) {
       for (const [phase, sealItemId] of Object.entries(enemy.phaseSealItemIds)) {
@@ -329,6 +382,9 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
       for (const move of moves) {
         if (!Number.isInteger(move.damage) || move.damage < 0) errors.push(`Bewegung ${enemy.id}/${move.id} hat ungültigen Schaden.`)
         if (move.damageType && !DAMAGE_TYPES.includes(move.damageType)) errors.push(`Bewegung ${enemy.id}/${move.id} hat eine unbekannte Schadensart.`)
+        if (move.kind === 'heal' && (!Number.isSafeInteger(move.healAmount) || move.healAmount! < 1)) errors.push(`Heilbewegung ${enemy.id}/${move.id} hat keine gültige Heilmenge.`)
+        if (move.kind !== 'heal' && move.healAmount !== undefined) errors.push(`Bewegung ${enemy.id}/${move.id} heilt, ohne eine Heilbewegung zu sein.`)
+        if (move.inflictedEffect && !statusIds.has(move.inflictedEffect.id)) errors.push(`Bewegung ${enemy.id}/${move.id} verwendet den unbekannten Zustand ${move.inflictedEffect.id}.`)
       }
     }
   }
@@ -352,16 +408,34 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
         if (!DAMAGE_TYPES.includes(item.weapon.damageType)) errors.push(`Waffe ${item.id} hat eine unbekannte Schadensart.`)
         if (item.weapon.elemental && 'type' in item.weapon.elemental && !DAMAGE_TYPES.includes(item.weapon.elemental.type)) errors.push(`Waffe ${item.id} hat ein unbekanntes Element.`)
         if (item.weapon.elemental && 'choices' in item.weapon.elemental && (!validDamageTypes(item.weapon.elemental.choices) || item.weapon.elemental.choices.includes('physical'))) errors.push(`Waffe ${item.id} hat ungültige Elementmodi.`)
+        if (item.weapon.skill) {
+          const skill = item.weapon.skill
+          const skillEffect = skill.effect
+          if (!Number.isSafeInteger(skill.cooldown) || skill.cooldown < 1) errors.push(`Waffenkunst ${skill.id} hat eine ungültige Abklingzeit.`)
+          if (skillEffect.kind === 'burst' && (!DAMAGE_TYPES.includes(skillEffect.damageType) || !Number.isSafeInteger(skillEffect.bonusDamage) || skillEffect.bonusDamage < 1)) errors.push(`Waffenkunst ${skill.id} hat ungültigen Zusatzschaden.`)
+          if (skillEffect.kind === 'inflict' || skillEffect.kind === 'ward') {
+            const status = world.statusEffects?.find((entry) => entry.id === skillEffect.effectId)
+            if (!status) errors.push(`Waffenkunst ${skill.id} verwendet den unbekannten Zustand ${skillEffect.effectId}.`)
+            else if ((skillEffect.kind === 'inflict' && status.target !== 'enemy') || (skillEffect.kind === 'ward' && status.target !== 'player')) errors.push(`Waffenkunst ${skill.id} verwendet ${status.id} für das falsche Ziel.`)
+          }
+        }
       }
     }
     if (item.kind === 'armor' && (!item.armor || !Number.isInteger(item.armor.defense) || item.armor.defense < 0 || !validDamageTypes(item.armor.protectsFrom) || !validDamageTypes(item.armor.immuneTo))) errors.push(`Rüstung ${item.id} hat keine gültigen Schutzwerte.`)
     if (item.kind === 'healing' && (!item.healing || !Number.isInteger(item.healing.lifeRestored) || item.healing.lifeRestored < 1)) errors.push(`Heilgegenstand ${item.id} hat keine gültige Heilwirkung.`)
+    if (item.healing) {
+      for (const effectId of item.healing.clearsEffectIds ?? []) if (!statusIds.has(effectId)) errors.push(`Heilgegenstand ${item.id} entfernt den unbekannten Zustand ${effectId}.`)
+      if (item.healing.combatEffect && !statusIds.has(item.healing.combatEffect.id)) errors.push(`Heilgegenstand ${item.id} verwendet den unbekannten Zustand ${item.healing.combatEffect.id}.`)
+    }
   }
 
   for (const status of world.statusEffects ?? []) {
     if (status.maximumDuration !== undefined && (!Number.isSafeInteger(status.maximumDuration) || status.maximumDuration < 1)) errors.push(`Zustand ${status.id} hat eine ungültige Höchstdauer.`)
     if (!validDamageTypes(status.modifiers?.protectsFrom)) errors.push(`Zustand ${status.id} schützt vor unbekannten Schadensarten.`)
+    if (!validDamageTypes(status.modifiers?.addWeakness)) errors.push(`Zustand ${status.id} ergänzt unbekannte Schwächen.`)
     if (status.modifiers?.damageMultiplier !== undefined && (!Number.isFinite(status.modifiers.damageMultiplier) || status.modifiers.damageMultiplier < 0 || status.modifiers.damageMultiplier > 1)) errors.push(`Zustand ${status.id} hat einen ungültigen Schadensfaktor.`)
+    if (status.perTurn && (!Number.isSafeInteger(status.perTurn.damage) || status.perTurn.damage < 1 || !DAMAGE_TYPES.includes(status.perTurn.damageType))) errors.push(`Zustand ${status.id} hat ungültigen Rundenschaden.`)
+    for (const itemId of status.clearedByItemIds ?? []) if (!world.items.find((item) => item.id === itemId)?.healing) errors.push(`Zustand ${status.id} nennt das unbekannte Gegenmittel ${itemId}.`)
   }
   for (const duplicate of duplicateIds((world.statusEffects ?? []).map((status) => status.id))) errors.push(`Doppelter Zustand: ${duplicate}.`)
 

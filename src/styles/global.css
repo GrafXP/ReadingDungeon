@@ -217,6 +217,11 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
 .combat-stance { flex: 0 0 auto; border-radius: 20px; padding: .25rem .65rem; color: white; background: #5d746a; font-size: .72rem; font-weight: 700; }
 .combat-stance--guarded { background: #4b6170; }
 .combat-stance--vulnerable { color: #552219; background: #f1b26e; }
+.combat-equipment { display: flex; flex-wrap: wrap; gap: .4rem .8rem; margin: 0 0 .75rem; padding: .6rem .75rem; border-radius: 10px; background: #f3ead8; color: var(--ink-soft); font-size: .78rem; }
+.combat-equipment span { display: inline-flex; align-items: center; gap: .25rem; }
+.enemy-knowledge { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .8rem; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.55); }
+.enemy-knowledge p { margin: 0; }
+.enemy-knowledge .button { min-height: 40px; flex: 0 0 auto; padding: .4rem .7rem; }
 .boss-warning { margin-bottom: 1rem; padding: .75rem .9rem; border-left: 4px solid var(--danger); border-radius: 0 10px 10px 0; color: #652c26; background: #ffe6e0; }
 .boss-warning p { margin: .2rem 0 0; line-height: 1.45; }
 .combat-health { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin-bottom: .9rem; }
@@ -234,6 +239,11 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
 .enemy-intent--heavy > span { background: var(--danger); }
 .enemy-intent--guard { border-color: #8498a2; background: #eaf0f1; }
 .enemy-intent--guard > span { background: #4b6170; }
+.enemy-intent--shield, .enemy-intent--heal { border-color: #8498a2; background: #eaf0f1; }
+.enemy-intent--charge { border-color: #bc7652; background: #fff0d8; }
+.combat-targets { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
+.combat-targets button { min-height: 44px; border: 1px solid var(--forest); border-radius: 20px; padding: .4rem .8rem; background: white; }
+.combat-targets button[aria-pressed='true'] { color: white; background: var(--forest); }
 .combat-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
 .combat-action { display: grid; min-height: 72px; grid-template-columns: 30px 1fr; grid-template-rows: auto auto; align-items: center; border: 1px solid var(--line); border-radius: 11px; padding: .55rem .65rem; background: white; cursor: pointer; text-align: left; }
 .combat-action > span { grid-row: 1 / 3; color: var(--forest); font-size: 1.25rem; }
@@ -279,6 +289,10 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
 .item-stats div { padding: .75rem; border: 1px solid var(--line); border-radius: 10px; background: #f6f0df; }
 .item-stats dt { color: var(--ink-soft); font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .item-stats dd { margin: .25rem 0 0; color: var(--forest); font-weight: 700; }
+.gear-comparison { margin: 1rem 0; padding: .85rem; border: 1px solid var(--line); border-radius: 12px; background: #fbf5e7; }
+.gear-comparison h4 { margin-bottom: .6rem; }
+.gear-comparison ul { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .35rem .75rem; margin: 0; padding: 0; list-style: none; }
+.gear-comparison li { display: flex; justify-content: space-between; gap: .5rem; font-size: .82rem; }
 .item-actions { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .item-actions .button[aria-disabled='true'] { opacity: .48; cursor: not-allowed; }
 .action-reason, .protected-item-note { margin: .45rem 0 0 !important; color: var(--ink-soft) !important; font-size: .82rem; line-height: 1.4; }
@@ -347,6 +361,33 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
 .puzzle-control label { font-weight: 700; }
 .puzzle-panel button, .puzzle-panel select { min-height: 48px; padding: .5rem .75rem; border: 1px solid var(--forest); border-radius: 8px; background: var(--paper); color: var(--ink); }
 .puzzle-panel button:disabled { opacity: .55; }
+.puzzle-hints { display: grid; gap: .25rem; margin-bottom: .8rem; }
+.puzzle-hints details { margin: 0; }
+.puzzle-ordering { display: grid; gap: .45rem; padding-left: 1.7rem; }
+.puzzle-ordering li { padding: .45rem .55rem; border-radius: 9px; background: rgba(255,255,255,.62); }
+.puzzle-ordering li, .puzzle-order-buttons { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
+.puzzle-order-buttons button { min-width: 48px; padding: .35rem; }
+.puzzle-grid { display: grid; max-width: 24rem; gap: .4rem; margin: 1rem 0; }
+.puzzle-grid button[aria-pressed='true'] { color: white; background: var(--forest); }
+.puzzle-source { margin: .8rem 0; padding: .8rem; border-left: 4px solid var(--gold); background: #fff9e7; }
+.puzzle-source h3 { margin-bottom: .35rem; font-size: 1.05rem; }
+.puzzle-source p { margin: 0; }
+.puzzle-weight { font-weight: 700; }
+.collection-screen { width: min(100% - 2rem, 980px); }
+.screen-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: .65rem; }
+.screen-heading h1 { margin: 0; }
+.screen-intro { max-width: 46rem; margin-bottom: 1.4rem; color: var(--ink-soft); }
+.count-badge { border-radius: 20px; padding: .3rem .7rem; color: white; background: var(--forest); font-size: .78rem; font-weight: 700; }
+.collection-grid, .bestiary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 1rem; }
+.collection-card, .bestiary-card, .empty-state { padding: 1.2rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow); }
+.collection-card progress { width: 100%; height: 14px; margin: .8rem 0 .35rem; accent-color: var(--forest-light); }
+.collection-card > strong { display: block; color: var(--forest); }
+.collection-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; color: var(--forest); background: #f0dda0; font-size: 1.4rem; }
+.bestiary-card dl { display: grid; gap: .35rem; }
+.bestiary-card dl div { display: grid; grid-template-columns: 7rem 1fr; gap: .5rem; }
+.bestiary-card dd { margin: 0; font-weight: 700; }
+.bestiary-card ul { padding-left: 1.2rem; }
+.locked-note { padding: .7rem; border-radius: 9px; background: #eeeae0; color: var(--ink-soft); }
 .seal-progress { margin: .7rem 0; padding: .55rem .75rem; border-radius: 10px; color: var(--forest); background: #f7e8b7; font-weight: 700; }
 .final-action { display: grid; gap: .65rem; justify-items: start; margin-top: 1rem; padding: 1rem; border: 2px solid var(--gold); border-radius: 14px; background: #fff5d4; }
 .final-action p { margin: 0; }
@@ -487,6 +528,8 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
 .reminder-empty p { margin: 0; }
 
 @media (max-width: 760px) {
+  .main-nav { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
+  .nav-link { flex: 0 0 auto; }
   .play-screen { display: block; }
   .atmosphere-panel { min-height: 54px; border-radius: 18px 18px 0 0; }
   .sun { top: 50%; left: 18px; width: 20px; height: 20px; transform: translateY(-50%); }
@@ -507,6 +550,7 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
   .item-glyph { width: 36px; height: 36px; }
   .item-details { padding: 1.2rem; }
   .item-illustration { width: 74px; height: 74px; float: right; margin: 0 0 .8rem .8rem; border-radius: 20px; font-size: 2rem; }
+  .gear-comparison ul { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 520px) {

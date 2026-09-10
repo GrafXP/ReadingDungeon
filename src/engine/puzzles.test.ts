@@ -11,7 +11,7 @@ describe('gespeicherte Rätsel', () => {
     const save = { ...fresh, currentAreaId: puzzle.areaId, visitedAreaIds: [...new Set([...fresh.visitedAreaIds, puzzle.areaId])] }
     const inspected = reduceGame(save, { type: 'INSPECT', areaId: puzzle.areaId }, world)
     expect(isPuzzleSolved(inspected, puzzle)).toBe(false)
-    expect(reduceGame(inspected, { type: 'COMPLETE_INTERACTION', interactionId: puzzle.interactionId }, world)).toBe(inspected)
+    expect(reduceGame(inspected, { type: 'COMPLETE_INTERACTION', interactionId: puzzle.interactionId! }, world)).toBe(inspected)
   })
   it('setzt nur die falsche Folge zurück und erhält Inventar, Leben und Teilfortschritt beim Laden', () => {
     const puzzle = world.puzzles![0]

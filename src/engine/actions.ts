@@ -2,22 +2,30 @@ import type { GameSave } from '../domain/game'
 import type { InteractionDefinition, ItemDefinition, PassageDefinition, WorldDefinition } from '../domain/content'
 import { evaluateRequirement } from './requirements'
 import { isPuzzleSolved } from './puzzles'
+import { DAMAGE_TYPE_LABELS } from './damage'
 
 export type GameAction =
   | { type: 'SHOW_HINT'; questId: string; level: number }
-  | { type: 'PUZZLE_INPUT'; puzzleId: string; controlId: string; value: number }
+  | { type: 'PUZZLE_INPUT'; puzzleId: string; controlId: string; value: string | number | boolean }
   | { type: 'PUZZLE_RESET'; puzzleId: string }
   | { type: 'MOVE'; passageId: string; toAreaId: string }
   | { type: 'INSPECT'; areaId: string }
   | { type: 'TAKE_ITEM'; interactionId: string }
   | { type: 'OPEN_CHEST'; interactionId: string }
   | { type: 'COMPLETE_INTERACTION'; interactionId: string }
+  | { type: 'COMPLETE_PUZZLE'; puzzleId: string }
   | { type: 'USE_ITEM'; itemId: string }
   | { type: 'USE_TOOL'; itemId: string }
   | { type: 'EQUIP_WEAPON'; itemId: string }
+  | { type: 'EQUIP_ARMOR'; itemId: string }
+  | { type: 'EQUIP_TALISMAN'; itemId: string }
+  | { type: 'SET_WEAPON_MODE'; itemId: string; damageType: import('../domain/content').DamageType }
   | { type: 'START_COMBAT'; encounterId: string }
   | { type: 'ATTACK' }
   | { type: 'DEFEND' }
+  | { type: 'USE_SKILL' }
+  | { type: 'STUDY_ENEMY'; enemyId: string }
+  | { type: 'SET_TARGET'; targetIndex: number }
   | { type: 'FLEE' }
   | { type: 'RESPAWN' }
   | { type: 'REST' }
@@ -53,6 +61,14 @@ export function isInteractionComplete(interaction: InteractionDefinition, save: 
   if (interaction.completedWhen && evaluateRequirement(interaction.completedWhen, save).met) return true
   if (interaction.chestId) return save.openedChestIds.includes(interaction.chestId)
   return save.flags.includes(`interaktion:${interaction.id}`)
+}
+
+export function isPuzzleComplete(save: GameSave, puzzle: NonNullable<WorldDefinition['puzzles']>[number], world: WorldDefinition): boolean {
+  if (puzzle.interactionId) {
+    const interaction = world.interactions.find((entry) => entry.id === puzzle.interactionId)
+    return Boolean(interaction && isInteractionComplete(interaction, save))
+  }
+  return save.flags.includes(`raetsel_abgeschlossen:${puzzle.id}`)
 }
 
 function interactionIcon(interaction: InteractionDefinition): string {
@@ -120,6 +136,20 @@ export function getAvailableActions(save: GameSave, world: WorldDefinition): Ava
     })
   }
 
+  for (const puzzle of world.puzzles?.filter((entry) => entry.areaId === area.id && entry.completion && !isPuzzleComplete(save, entry, world)) ?? []) {
+    const solved = isPuzzleSolved(save, puzzle)
+    actions.push({
+      id: `puzzle-complete:${puzzle.id}`,
+      kind: 'interaction',
+      label: puzzle.completion!.label,
+      description: puzzle.completion!.description,
+      icon: '◆',
+      disabled: !solved,
+      blockedReason: solved ? undefined : 'Löse zuerst das Rätsel oben.',
+      gameAction: { type: 'COMPLETE_PUZZLE', puzzleId: puzzle.id }
+    })
+  }
+
   for (const encounter of world.encounters.filter((entry) => entry.areaId === area.id)) {
     if (save.defeatedEncounterIds.includes(encounter.id)) continue
     const enemies = encounter.enemyIds.map((id) => world.enemies.find((entry) => entry.id === id)).filter((enemy): enemy is NonNullable<typeof enemy> => Boolean(enemy))
@@ -167,12 +197,39 @@ export function getInventoryActions(save: GameSave, item: ItemDefinition): Inven
   if (item.kind === 'weapon' && item.weapon) {
     const inCombat = save.activeCombat !== null
     const equipped = save.player.equippedWeaponId === item.id
-    return [{
+    const actions: InventoryAction[] = [{
       id: `equip:${item.id}`,
       label: equipped ? 'Ausgerüstet' : 'Ausrüsten',
       disabled: inCombat || equipped,
       reason: inCombat ? 'Während eines Kampfes kannst du die Waffe nicht wechseln.' : equipped ? 'Diese Waffe ist bereits ausgerüstet.' : undefined,
       gameAction: { type: 'EQUIP_WEAPON', itemId: item.id }
+    }]
+    if (item.weapon.elemental && 'choices' in item.weapon.elemental) {
+      const atRest = !save.activeCombat && save.currentAreaId === save.lastSanctuaryId
+      const currentMode = save.player.weaponElementModes[item.id] ?? item.weapon.elemental.choices[0]
+      for (const damageType of item.weapon.elemental.choices) {
+        actions.push({
+          id: `mode:${item.id}:${damageType}`,
+          label: currentMode === damageType ? `Modus ${DAMAGE_TYPE_LABELS[damageType]}: aktiv` : `Auf ${DAMAGE_TYPE_LABELS[damageType]} stellen`,
+          disabled: !atRest || currentMode === damageType,
+          reason: !atRest ? 'Den Waffenmodus kannst du nur an einem Rastplatz ändern.' : currentMode === damageType ? 'Dieser Modus ist bereits aktiv.' : undefined,
+          gameAction: { type: 'SET_WEAPON_MODE', itemId: item.id, damageType }
+        })
+      }
+    }
+    return actions
+  }
+
+  if (item.kind === 'armor' && item.armor) {
+    const inCombat = save.activeCombat !== null
+    const slot = item.armor.slot
+    const equipped = slot === 'body' ? save.player.equippedArmorId === item.id : save.player.equippedTalismanId === item.id
+    return [{
+      id: `equip:${item.id}`,
+      label: equipped ? 'Ausgerüstet' : slot === 'body' ? 'Als Rüstung ausrüsten' : 'Als Talisman ausrüsten',
+      disabled: inCombat || equipped,
+      reason: inCombat ? 'Während eines Kampfes kannst du die Ausrüstung nicht wechseln.' : equipped ? 'Dieser Gegenstand ist bereits ausgerüstet.' : undefined,
+      gameAction: { type: slot === 'body' ? 'EQUIP_ARMOR' : 'EQUIP_TALISMAN', itemId: item.id }
     }]
   }
 

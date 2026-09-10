@@ -217,6 +217,7 @@ export interface EnemyMoveDefinition {
   telegraph: string
   icon: string
   damage: number
+  healAmount?: number
   kind: EnemyMoveKind
   defendNegates?: boolean
   vulnerableAfterDefend?: boolean
@@ -239,6 +240,8 @@ export interface StatusEffectDefinition {
     skipEnemyTurn?: boolean
     addWeakness?: DamageType[]
     enemyStance?: 'normal' | 'guarded' | 'vulnerable'
+    damageTakenDelta?: number
+    groundsEnemy?: boolean
     protectsFrom?: DamageType[]
     damageMultiplier?: number
   }
@@ -302,12 +305,47 @@ export interface WorldDefinition {
 
 export interface PuzzleDefinition {
   id: string
-  kind?: 'controls' | 'pairing' | 'ordering' | 'grid' | 'reading' | 'weighing'
+  kind?: 'controls' | 'sequence' | 'pairing' | 'ordering' | 'grid' | 'reading' | 'weighing'
   areaId: AreaId
-  interactionId: string
+  interactionId?: string
+  completion?: {
+    label: string
+    description: string
+    resultText: string
+    effects: InteractionEffect[]
+  }
   title: string
   hint: string
+  hints?: [string, string, string]
   controls: { id: string; label: string; options: string[]; initial: number; solution: number }[]
   sequence?: { options: string[]; solution: number[] }
+  pairing?: {
+    left: { id: string; label: string }[]
+    right: { id: string; label: string }[]
+    solution: Record<string, string>
+  }
+  ordering?: {
+    items: { id: string; label: string }[]
+    solution: string[]
+  }
+  grid?: {
+    width: number
+    height: number
+    start: number
+    goal: number
+    blocked?: number[]
+    solution: number[]
+  }
+  reading?: {
+    sourceTitle: string
+    sourceText: string
+    prompts: { id: string; label: string; options: string[]; solution: number }[]
+  }
+  weighing?: {
+    leftLabel: string
+    rightLabel: string
+    items: { id: string; label: string; weight: number }[]
+    solution: Record<string, 'left' | 'right' | 'off'>
+  }
   maxOpenControls?: number
 }

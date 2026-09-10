@@ -10,6 +10,8 @@ import { QuestsScreen } from '../screens/QuestsScreen'
 import { RemindersScreen } from '../screens/RemindersScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { TitleScreen } from '../screens/TitleScreen'
+import { BestiaryScreen } from '../screens/BestiaryScreen'
+import { CollectionScreen } from '../screens/CollectionScreen'
 import { useAppState } from './AppState'
 
 function AdventureRoute({ children }: { children: React.ReactNode }) {
@@ -42,6 +44,8 @@ export function App() {
           <Route path="/aufgaben" element={<AdventureRoute><QuestsScreen /></AdventureRoute>} />
           <Route path="/merkliste" element={<AdventureRoute><RemindersScreen /></AdventureRoute>} />
           <Route path="/tagebuch" element={<AdventureRoute><JournalScreen /></AdventureRoute>} />
+          <Route path="/register" element={<AdventureRoute><BestiaryScreen /></AdventureRoute>} />
+          <Route path="/sammlung" element={<AdventureRoute><CollectionScreen /></AdventureRoute>} />
           <Route path="/einstellungen" element={<SettingsScreen />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -18,6 +18,7 @@ import {
 } from '../domain/settings'
 import { kantaraWorld } from '../content/world/kantaraWorld'
 import { evaluateRequirement } from '../engine/requirements'
+import { isPuzzleStateValid } from '../engine/puzzles'
 
 export class DataValidationError extends Error {
   constructor(message: string) {
@@ -298,7 +299,7 @@ function validateWorldReferences(save: GameSave, world: WorldDefinition): void {
   validateEquippedItem(save.player.equippedTalismanId, 'talisman', save.player.inventory, world)
   for (const [weaponId, mode] of Object.entries(save.player.weaponElementModes)) {
     const elemental = world.items.find((item) => item.id === weaponId)?.weapon?.elemental
-    if (!elemental || !('choices' in elemental) || !elemental.choices.includes(mode!)) throw new DataValidationError(`Der Waffenmodus für ${weaponId} ist ungültig.`)
+    if ((save.player.inventory[weaponId] ?? 0) < 1 || !elemental || !('choices' in elemental) || !elemental.choices.includes(mode!)) throw new DataValidationError(`Der Waffenmodus für ${weaponId} ist ungültig.`)
   }
   const sanctuary = world.areas.find((entry) => entry.id === save.lastSanctuaryId)
   if (!sanctuary?.safe || !evaluateRequirement(sanctuary.sanctuaryRequirement, save).met) throw new DataValidationError('Der letzte sichere Ort ist kein verfügbarer Rastplatz.')
@@ -310,13 +311,7 @@ function validateWorldReferences(save: GameSave, world: WorldDefinition): void {
   }
   for (const [id, state] of Object.entries(save.puzzleStates)) {
     const puzzle = world.puzzles?.find((entry) => entry.id === id)
-    if (!puzzle || state.kind !== (puzzle.kind ?? 'controls')) throw new DataValidationError(`Unbekanntes Rätsel: ${id}.`)
-    const expectedKeys = ['sequence', ...puzzle.controls.map((control) => control.id)]
-    if (Object.keys(state.values).length !== expectedKeys.length || expectedKeys.some((key) => !Object.hasOwn(state.values, key))) throw new DataValidationError(`Rätsel ${id}: unvollständige Stellung.`)
-    for (const control of puzzle.controls) {
-      const choice = requireNonNegativeInteger(state.values[control.id], `puzzleStates.${id}.${control.id}`)
-      if (choice >= control.options.length) throw new DataValidationError(`Rätsel ${id}: ungültige Stellung.`)
-    }
+    if (!puzzle || !isPuzzleStateValid(state, puzzle)) throw new DataValidationError(`Unbekanntes oder ungültiges Rätsel: ${id}.`)
   }
 
   const combat = save.activeCombat
@@ -330,10 +325,18 @@ function validateWorldReferences(save: GameSave, world: WorldDefinition): void {
   const bossWasHit = combat.combatants.some((entry) => world.enemies.some((enemy) => enemy.id === entry.enemyId && enemy.kind === 'boss') && entry.life < entry.maxLife)
   if (bossWasHit && combat.canFlee) throw new DataValidationError('Der Rückweg eines begonnenen Bosskampfs darf nicht wieder geöffnet werden.')
   const knownEffects = new Map((world.statusEffects ?? []).map((effect) => [effect.id, effect]))
-  for (const effect of [...combat.playerEffects, ...combat.combatants.flatMap((entry) => entry.effects)]) {
+  for (const effect of combat.playerEffects) {
     const definition = knownEffects.get(effect.id)
-    if (!definition || (definition.maximumDuration && effect.remainingEnemyTurns > definition.maximumDuration)) throw new DataValidationError(`Unbekannter oder ungültiger Kampfeffekt ${effect.id}.`)
+    if (!definition || definition.target !== 'player' || (definition.maximumDuration && effect.remainingEnemyTurns > definition.maximumDuration)) throw new DataValidationError(`Unbekannter oder ungültiger Spielereffekt ${effect.id}.`)
   }
+  for (const effect of combat.combatants.flatMap((entry) => entry.effects)) {
+    const definition = knownEffects.get(effect.id)
+    if (!definition || definition.target !== 'enemy' || (definition.maximumDuration && effect.remainingEnemyTurns > definition.maximumDuration)) throw new DataValidationError(`Unbekannter oder ungültiger Gegnereffekt ${effect.id}.`)
+  }
+  const equippedWeapon = world.items.find((item) => item.id === save.player.equippedWeaponId)?.weapon
+  const equippedArmor = world.items.find((item) => item.id === save.player.equippedArmorId)?.armor
+  const maximumCooldown = equippedWeapon?.skill ? equippedWeapon.skill.cooldown + (equippedArmor?.penalty?.kind === 'slowSkill' ? 1 : 0) : 0
+  if (combat.skillCooldown > maximumCooldown) throw new DataValidationError('Die gespeicherte Waffenkunst-Abklingzeit ist ungültig.')
   for (const combatant of combat.combatants) {
     const enemy = world.enemies.find((entry) => entry.id === combatant.enemyId)
     const move = enemy?.movesByPhase[combatant.phase]?.find((entry) => entry.id === combatant.announcedMoveId)

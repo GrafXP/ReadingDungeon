@@ -4,7 +4,7 @@ import { InventoryDialog } from '../components/InventoryDialog'
 import { CombatPanel } from '../components/CombatPanel'
 import { PuzzlePanel } from '../components/PuzzlePanel'
 import { activeWorld } from '../content/world'
-import { getAvailableActions, isInteractionComplete } from '../engine/actions'
+import { getAvailableActions, isPuzzleComplete } from '../engine/actions'
 import { reduceGame } from '../engine/reducer'
 import { evaluateRequirement } from '../engine/requirements'
 import {
@@ -104,7 +104,7 @@ export function PlayScreen() {
           </ul>
         </section>}
 
-        {!game.activeCombat && areaInspected && activeWorld.puzzles?.filter((puzzle) => puzzle.areaId === game.currentAreaId && !isInteractionComplete(activeWorld.interactions.find((entry) => entry.id === puzzle.interactionId)!, game)).map((puzzle) => (
+        {!game.activeCombat && areaInspected && activeWorld.puzzles?.filter((puzzle) => puzzle.areaId === game.currentAreaId && !isPuzzleComplete(game, puzzle, activeWorld)).map((puzzle) => (
           <PuzzlePanel key={puzzle.id} game={game} puzzle={puzzle} onAction={(action) => updateAdventure((current) => reduceGame(current, action, activeWorld))} />
         ))}
 

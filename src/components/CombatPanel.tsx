@@ -3,6 +3,8 @@ import type { WorldDefinition } from '../domain/content'
 import type { GameSave } from '../domain/game'
 import type { GameAction } from '../engine/actions'
 import { getCombatView } from '../engine/combat'
+import { getEnemyKnowledge } from '../engine/bestiary'
+import { DAMAGE_TYPE_ICONS, DAMAGE_TYPE_LABELS } from '../engine/damage'
 
 interface CombatPanelProps {
   game: GameSave
@@ -24,6 +26,14 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
   }
   const combat = game.activeCombat
   const combatant = view.combatant
+  const knowledge = getEnemyKnowledge(game, view.enemy)
+  const weaponItem = world.items.find((item) => item.id === game.player.equippedWeaponId)
+  const armorItem = world.items.find((item) => item.id === game.player.equippedArmorId)
+  const talismanItem = world.items.find((item) => item.id === game.player.equippedTalismanId)
+  const weaponMode = weaponItem?.weapon?.elemental && 'choices' in weaponItem.weapon.elemental
+    ? game.player.weaponElementModes[weaponItem.id] ?? weaponItem.weapon.elemental.choices[0]
+    : weaponItem?.weapon?.elemental && 'type' in weaponItem.weapon.elemental ? weaponItem.weapon.elemental.type : weaponItem?.weapon?.damageType
+  const skill = weaponItem?.weapon?.skill
   const enemyPercent = Math.round((combatant.life / combatant.maxLife) * 100)
   const playerPercent = Math.round((game.player.life / game.player.maxLife) * 100)
 
@@ -60,6 +70,17 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
         </p>
       )}
 
+      <p className="combat-equipment" aria-label="Ausgerüstete Gegenstände">
+        <span>⚔ {weaponItem?.name ?? 'Keine Waffe'}{weaponMode ? ` · ${DAMAGE_TYPE_ICONS[weaponMode]} ${DAMAGE_TYPE_LABELS[weaponMode]}` : ''}</span>
+        <span>◈ {armorItem?.name ?? 'Keine Rüstung'}</span>
+        <span>◇ {talismanItem?.name ?? 'Kein Talisman'}</span>
+      </p>
+
+      <div className="enemy-knowledge">
+        <p><strong>Schwach gegen:</strong> {knowledge.weaknesses}</p>
+        {!knowledge.studied && <button className="button button--quiet" onClick={() => onAction({ type: 'STUDY_ENEMY', enemyId: view.enemy.id })}>Beobachten</button>}
+      </div>
+
       {[...combat.playerEffects, ...combatant.effects].length > 0 && <p className="combat-effects">{[...combat.playerEffects, ...combatant.effects].map((effect) => `${world.statusEffects?.find((entry) => entry.id === effect.id)?.name ?? effect.id} (${effect.remainingEnemyTurns})`).join(' · ')}</p>}
 
       <div className="combat-health">
@@ -86,6 +107,15 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
         </article>
       )}
 
+      {combat.combatants.length > 1 && <div className="combat-targets" aria-label="Kampfziel">
+        {combat.combatants.map((entry, index) => <button
+          key={`${entry.enemyId}:${index}`}
+          aria-pressed={combat.targetIndex === index}
+          disabled={entry.life === 0}
+          onClick={() => onAction({ type: 'SET_TARGET', targetIndex: index })}
+        >{world.enemies.find((enemy) => enemy.id === entry.enemyId)?.name ?? entry.enemyId}</button>)}
+      </div>}
+
       {combat.pendingSealItemId ? (
         <div className="final-action" role="status">
           <p>Der Schattenriss bleibt offen. Diese Aktion ist sicher und löst keinen Gegentreffer aus.</p>
@@ -109,6 +139,15 @@ export function CombatPanel({ game, world, onAction, onOpenInventory }: CombatPa
         </button>
         <button className="combat-action" onClick={onOpenInventory}>
           <span aria-hidden="true">♥</span><strong>Gegenstand</strong><small>Heilmittel aus dem Inventar nutzen</small>
+        </button>
+        <button
+          className="combat-action combat-action--skill"
+          aria-disabled={!skill || combat.skillCooldown > 0}
+          onClick={() => skill && combat.skillCooldown === 0 && onAction({ type: 'USE_SKILL' })}
+        >
+          <span aria-hidden="true">✦</span>
+          <strong>{skill?.name ?? 'Waffenkunst'}</strong>
+          <small>{!skill ? 'Diese Waffe hat keine Waffenkunst' : combat.skillCooldown > 0 ? `Bereit in ${combat.skillCooldown} ${combat.skillCooldown === 1 ? 'Runde' : 'Runden'}` : skill.description}</small>
         </button>
         <button
           className="combat-action combat-action--flee"

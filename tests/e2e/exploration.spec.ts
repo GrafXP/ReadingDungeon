@@ -43,6 +43,26 @@ test('startet die Kantara-Kampagne im Kurierhof und speichert den neuen Kernzust
   expect(save).toMatchObject({ studiedEnemyIds: [], metEnemyIds: [] })
 })
 
+test('zeigt das Übungsrätsel erst nach dem Untersuchen und lässt es ohne Ziehgeste lösen', async ({ page }) => {
+  await startAdventure(page)
+  await page.locator('[data-action-id="inspect:kb_kurierhof"]').click()
+  await page.getByRole('button', { name: /Gehe zu Merals Übungsauftrag/ }).click()
+
+  await expect(page.getByRole('heading', { name: 'Sortierhalle', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Die drei Übungsetiketten' })).toHaveCount(0)
+  await expect(page.locator('.action-grid button')).toHaveCount(1)
+  await page.locator('[data-action-id="inspect:kb_sortierhalle"]').click()
+
+  await expect(page.getByRole('heading', { name: 'Die drei Übungsetiketten' })).toBeVisible()
+  await page.getByRole('combobox', { name: /Beerenpaket/ }).selectOption('kuehlfach')
+  await page.getByRole('combobox', { name: /Ersatzspule/ }).selectOption('werftkiste')
+  await page.getByRole('combobox', { name: /Medizinkiste/ }).selectOption('wassertor')
+  const complete = page.locator('[data-action-id="puzzle-complete:puz_kb_uebungsetiketten"]')
+  await expect(complete).toHaveAttribute('aria-disabled', 'false')
+  await complete.click()
+  await expect(page.locator('.event-result')).toContainText('erst prüfen, dann handeln')
+})
+
 test('zeigt nur Kantara-Daten in Karte, Aufgaben und Merkliste', async ({ page }) => {
   await startAdventure(page)
 

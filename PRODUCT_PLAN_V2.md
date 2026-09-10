@@ -900,6 +900,13 @@ typisiert, validierbar und speicherbar.
 
 ### Phase 2 — Kampf-, Ausrüstungs- und Leserätsel-Fundament
 
+**Status: abgeschlossen am 9. September 2026.** Die Regelmodule, gespeicherten
+Kampfzustände, Ausrüstungs- und Registeroberflächen sowie alle fünf generischen
+Leserätselarten sind umgesetzt und durch Logik-, Komponenten- und
+Browserprüfungen abgesichert. Das erste Kantara-Paarungsrätsel ist in der
+Sortierhalle spielbar; die grosse Inhaltsbefüllung beginnt bewusst erst mit
+Phase 3.
+
 - `damage.ts` mit sichtbarer Trefferrechnung und Tests für Schwächen,
   Widerstände, Immunitäten, Panzerung, Elementaranteile und gespeicherte
   Waffenmodi umsetzen

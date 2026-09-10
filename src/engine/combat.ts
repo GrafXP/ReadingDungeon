@@ -3,6 +3,8 @@ import type { ActiveEffect, Combatant, CombatState, GameSave } from '../domain/g
 import { applyEffect } from './effects'
 import { evaluateRequirement } from './requirements'
 import { otherEnd } from './actions'
+import { resolveEnemyHit, resolvePlayerHit } from './damage'
+import { addStatusEffect, getStatusDefinition, hasStatusModifier, statusDamage, tickStatusEffects } from './statusEffects'
 
 export interface CombatView {
   encounter: EncounterDefinition
@@ -87,12 +89,6 @@ function statusName(world: WorldDefinition, id: string): string {
   return world.statusEffects?.find((effect) => effect.id === id)?.name ?? id
 }
 
-function decrementEffects(effects: ActiveEffect[]): ActiveEffect[] {
-  return effects
-    .map((effect) => ({ ...effect, remainingEnemyTurns: effect.remainingEnemyTurns - 1 }))
-    .filter((effect) => effect.remainingEnemyTurns > 0)
-}
-
 export function startCombat(save: GameSave, encounterId: string, world: WorldDefinition): CombatTransition | null {
   if (save.campaignId !== world.campaignId || save.activeCombat || save.player.life === 0 || save.defeatedEncounterIds.includes(encounterId)) return null
   const weapon = world.items.find((item) => item.id === save.player.equippedWeaponId)
@@ -118,6 +114,7 @@ export function startCombat(save: GameSave, encounterId: string, world: WorldDef
   })
   if (combatants.some((entry) => entry === null)) return null
 
+  const equippedArmor = world.items.find((item) => item.id === save.player.equippedArmorId)?.armor
   return {
     save: {
       ...save,
@@ -127,7 +124,7 @@ export function startCombat(save: GameSave, encounterId: string, world: WorldDef
         combatants: combatants as Combatant[],
         targetIndex: 0,
         round: 1,
-        canFlee: true,
+        canFlee: equippedArmor?.penalty?.kind !== 'noFlee',
         playerEffects: [],
         skillCooldown: 0,
         pendingSealItemId: null,
@@ -146,57 +143,77 @@ function resolveEnemyTurn(
   move: EnemyMoveDefinition,
   defending: boolean,
   prefix: string,
-  world: WorldDefinition
+  world: WorldDefinition,
+  interruptedText?: string
 ): CombatTransition {
   const combat = save.activeCombat!
   const active = activeCombatant(combat)!
-  let damage = move.damage
+  let damage = 0
   let outcome: string
-  let playerEffects = decrementEffects(combat.playerEffects)
-  let enemyEffects = decrementEffects(active.combatant.effects)
+  const playerOngoing = statusDamage(combat.playerEffects, world)
+  const enemyOngoing = statusDamage(active.combatant.effects, world)
+  let playerEffects = tickStatusEffects(combat.playerEffects)
+  let enemyEffects = tickStatusEffects(active.combatant.effects)
   const damageType = move.damageType ?? 'physical'
   const protectiveEffect = combat.playerEffects.find((effect) => {
     const definition = world.statusEffects?.find((status) => status.id === effect.id)
     return definition?.target === 'player' && definition.modifiers?.protectsFrom?.includes(damageType)
   })
+  const skippedByStatus = hasStatusModifier(active.combatant.effects, world, (definition) => Boolean(definition.modifiers?.skipEnemyTurn))
+  const armorItem = world.items.find((item) => item.id === save.player.equippedArmorId && item.armor)
+  const talismanItem = world.items.find((item) => item.id === save.player.equippedTalismanId && item.armor)
+  let enemyLife = Math.max(0, active.combatant.life - enemyOngoing.damage)
 
-  if (move.kind === 'guard' || move.kind === 'shield') {
-    damage = 0
+  if (enemyLife === 0) {
+    outcome = `${enemy.name} wird durch den Zustand besiegt, bevor die angekündigte Bewegung beginnt.`
+  } else if (interruptedText || skippedByStatus) {
+    outcome = interruptedText ?? `${enemy.name} ist ${statusName(world, active.combatant.effects.find((effect) => getStatusDefinition(world, effect.id)?.modifiers?.skipEnemyTurn)?.id ?? 'gefroren')} und setzt eine Bewegung aus.`
+  } else if (move.kind === 'guard' || move.kind === 'shield') {
     outcome = `${enemy.name} schützt sich mit ${move.name}.`
-  } else if (defending && move.defendNegates) {
-    damage = 0
-    outcome = move.defendOutcomeText ?? `Du erkennst ${move.name} rechtzeitig und bringst ${enemy.name} aus dem Gleichgewicht.`
-    if (move.vulnerableAfterDefend) {
+  } else if (move.kind === 'heal') {
+    const restored = Math.min(move.healAmount ?? move.damage, active.combatant.maxLife - enemyLife)
+    enemyLife += restored
+    outcome = `${enemy.name} nutzt ${move.name} und erhält ${restored} Leben zurück.`
+  } else {
+    const hit = resolveEnemyHit({
+      enemyName: enemy.name,
+      move,
+      defending,
+      armor: armorItem?.armor ? { name: armorItem.name, definition: armorItem.armor } : null,
+      talisman: talismanItem?.armor ? { name: talismanItem.name, definition: talismanItem.armor } : null,
+      ward: protectiveEffect ? {
+        name: statusName(world, protectiveEffect.id),
+        protectsFrom: getStatusDefinition(world, protectiveEffect.id)?.modifiers?.protectsFrom ?? []
+      } : null
+    })
+    damage = hit.damage
+    outcome = hit.text
+    if (protectiveEffect && hit.protectedBy === statusName(world, protectiveEffect.id)) {
+      playerEffects = playerEffects.filter((effect) => effect.id !== protectiveEffect.id)
+    }
+    if (defending && move.defendNegates && move.vulnerableAfterDefend) {
       const vulnerability = vulnerabilityEffect(world, active.combatant.phase === 2 ? 2 : 1)
       if (vulnerability) enemyEffects = [...enemyEffects.filter((effect) => effect.id !== vulnerability.id), vulnerability]
       outcome += ` ${move.vulnerableText ?? 'Ein kurzes Trefferfenster öffnet sich.'}`
     }
-  } else {
-    damage = defending ? Math.ceil(damage / 2) : damage
-    if (protectiveEffect && damage > 0) {
-      const definition = world.statusEffects?.find((status) => status.id === protectiveEffect.id)
-      damage = Math.ceil(damage * (definition?.modifiers?.damageMultiplier ?? 1))
-      playerEffects = playerEffects.filter((effect) => effect.id !== protectiveEffect.id)
-    }
-    outcome = defending
-      ? `Du fängst ${move.name} ab und verlierst nur ${damage} Leben.`
-      : `${move.name} trifft dich. Du verlierst ${damage} Leben.`
-    if (protectiveEffect && damage > 0) outcome += ` ${statusName(world, protectiveEffect.id)} schwächt den Treffer.`
   }
 
-  if (damage > 0 && !defending && move.inflictedEffect) {
-    playerEffects = [...playerEffects.filter((effect) => effect.id !== move.inflictedEffect!.id), {
-      id: move.inflictedEffect.id,
-      remainingEnemyTurns: move.inflictedEffect.duration
-    }]
+  if (damage > 0 && !defending && move.inflictedEffect && !interruptedText && !skippedByStatus) {
+    const definition = getStatusDefinition(world, move.inflictedEffect.id)
+    playerEffects = definition
+      ? addStatusEffect(playerEffects, definition, move.inflictedEffect.duration)
+      : [...playerEffects.filter((effect) => effect.id !== move.inflictedEffect!.id), { id: move.inflictedEffect.id, remainingEnemyTurns: move.inflictedEffect.duration }]
     outcome += ` ${move.inflictedEffect.text ?? `${statusName(world, move.inflictedEffect.id)} wirkt jetzt.`}`
   }
 
-  const life = Math.max(0, save.player.life - damage)
-  const phase = enemy.phaseSealItemIds ? active.combatant.phase : enemyPhase(enemy, active.combatant.life)
+  const ongoingText = [...enemyOngoing.labels, ...playerOngoing.labels]
+  if (ongoingText.length) outcome += ` ${ongoingText.join('. ')}.`
+  const life = Math.max(0, save.player.life - damage - playerOngoing.damage)
+  const phase = enemy.phaseSealItemIds ? active.combatant.phase : enemyPhase(enemy, enemyLife)
   const moveAfter = nextMove(enemy, phase, active.combatant.phase, move.id)
   const nextCombatant: Combatant = {
     ...active.combatant,
+    life: enemyLife,
     phase,
     announcedMoveId: moveAfter?.id ?? move.id,
     stance: stanceFor(moveAfter ?? move, enemyEffects, world),
@@ -206,7 +223,24 @@ function resolveEnemyTurn(
   const resolved: GameSave = {
     ...save,
     player: { ...save.player, life },
-    activeCombat: { ...resolvedCombat, round: combat.round + 1, playerEffects }
+    activeCombat: {
+      ...resolvedCombat,
+      round: combat.round + 1,
+      playerEffects,
+      skillCooldown: Math.max(0, combat.skillCooldown - 1)
+    }
+  }
+  if (enemyLife === 0 && !enemy.phaseSealItemIds) {
+    const encounter = world.encounters.find((entry) => entry.id === combat.encounterId)
+    if (encounter) {
+      let won: GameSave = {
+        ...resolved,
+        activeCombat: null,
+        defeatedEncounterIds: [...new Set([...resolved.defeatedEncounterIds, encounter.id])]
+      }
+      for (const effect of encounter.rewardEffects) won = applyEffect(won, effect, world)
+      return { save: won, text: `${prefix} ${outcome} ${encounter.victoryText}`, key: `combat-victory:${encounter.id}` }
+    }
   }
   if (life === 0) {
     return {
@@ -219,7 +253,12 @@ function resolveEnemyTurn(
   return { save: resolved, text: `${prefix} ${outcome}`, key: `combat-round:${combat.encounterId}:${combat.round}` }
 }
 
-export function attack(save: GameSave, world: WorldDefinition): CombatTransition | null {
+function attackWithBonus(
+  save: GameSave,
+  world: WorldDefinition,
+  extraDamage?: { amount: number; type: import('../domain/content').DamageType },
+  skillName?: string
+): CombatTransition | null {
   const view = getCombatView(save, world)
   if (!view || save.player.life === 0 || save.activeCombat?.pendingSealItemId || save.activeCombat?.awaitingFinalAction) return null
   const { encounter, enemy, move, combatant, targetIndex } = view
@@ -228,17 +267,27 @@ export function attack(save: GameSave, world: WorldDefinition): CombatTransition
   if (!weapon || (save.player.inventory[save.player.equippedWeaponId!] ?? 0) < 1) return null
 
   const roll = rollDamage(save.rngState, weapon.minDamage, weapon.maxDamage)
-  const guarded = combatant.stance === 'guarded' || (enemy.airborne && combatant.stance !== 'vulnerable')
-  const tagBonus = weapon.bonusAgainstTag && enemy.tags.includes(weapon.bonusAgainstTag.tag) ? weapon.bonusAgainstTag.amount : 0
-  const effectiveDefense = Math.max(0, enemy.defense - (weapon.armorPiercing ?? 0))
-  const crackBonus = combatant.stance === 'vulnerable' ? 2 : 0
-  const effectDelta = combat.playerEffects.reduce((total, effect) => total + (world.statusEffects?.find((entry) => entry.id === effect.id)?.modifiers?.playerAttackDelta ?? 0), 0)
+  const grounded = hasStatusModifier(combatant.effects, world, (definition) => Boolean(definition.modifiers?.groundsEnemy))
+  const guarded = combatant.stance === 'guarded' || (enemy.airborne && !grounded && combatant.stance !== 'vulnerable')
+  const weaponItem = world.items.find((entry) => entry.id === save.player.equippedWeaponId)!
+  const hit = resolvePlayerHit({
+    weapon,
+    weaponName: skillName ?? weaponItem.name,
+    enemy,
+    roll: roll.value,
+    weaponMode: save.player.weaponElementModes[weaponItem.id],
+    enemyEffects: combatant.effects,
+    playerEffects: combat.playerEffects,
+    statusEffects: world.statusEffects,
+    extraDamage,
+    blocked: guarded
+  })
   const boundary = enemy.phaseThresholds?.[combatant.phase + 1] ?? 0
-  const dealt = guarded ? 0 : Math.min(combatant.life - boundary, Math.max(1, roll.value + tagBonus + crackBonus - effectiveDefense + effectDelta))
+  const dealt = Math.min(combatant.life - boundary, hit.damage)
   const enemyLife = Math.max(0, combatant.life - dealt)
-  const hitText = guarded
-    ? `Dein Angriff richtet 0 Schaden an. ${enemy.name} ist ${enemy.airborne ? 'in der Luft unerreichbar. Verteidige dich gegen den Sturzflug, um ein Trefferfenster zu öffnen' : 'vollständig geschützt'}.`
-    : `Du triffst ${enemy.name} mit ${dealt} Schaden${crackBonus ? ' durch den offenen Riss' : ''}.`
+  const hitText = dealt === hit.damage
+    ? hit.text
+    : `${hit.text} Davon treffen ${dealt} Schaden bis zur Phasengrenze.`
   const hitCombatant = { ...combatant, life: enemyLife }
   let attacked: GameSave = {
     ...save,
@@ -273,6 +322,49 @@ export function attack(save: GameSave, world: WorldDefinition): CombatTransition
   }
 
   return resolveEnemyTurn(attacked, enemy, move, false, hitText, world)
+}
+
+export function attack(save: GameSave, world: WorldDefinition): CombatTransition | null {
+  return attackWithBonus(save, world)
+}
+
+export function useWeaponSkill(save: GameSave, world: WorldDefinition): CombatTransition | null {
+  const view = getCombatView(save, world)
+  const combat = save.activeCombat
+  const weaponItem = world.items.find((item) => item.id === save.player.equippedWeaponId)
+  const skill = weaponItem?.weapon?.skill
+  if (!view || !combat || !skill || combat.skillCooldown > 0 || save.player.life === 0 || combat.pendingSealItemId || combat.awaitingFinalAction) return null
+  const armor = world.items.find((item) => item.id === save.player.equippedArmorId)?.armor
+  const cooldown = skill.cooldown + (armor?.penalty?.kind === 'slowSkill' ? 1 : 0) + 1
+  let prepared: GameSave = { ...save, activeCombat: { ...combat, skillCooldown: cooldown } }
+
+  if (skill.effect.kind === 'burst') {
+    return attackWithBonus(prepared, world, { amount: skill.effect.bonusDamage, type: skill.effect.damageType }, skill.name)
+  }
+  if (skill.effect.kind === 'sweep') return attackWithBonus(prepared, world, undefined, skill.name)
+  if (skill.effect.kind === 'inflict') {
+    const definition = getStatusDefinition(world, skill.effect.effectId)
+    if (!definition || definition.target !== 'enemy') return null
+    const affected = {
+      ...view.combatant,
+      effects: addStatusEffect(view.combatant.effects, definition, skill.effect.duration)
+    }
+    prepared = { ...prepared, activeCombat: replaceCombatant(prepared.activeCombat!, view.targetIndex, affected) }
+    return resolveEnemyTurn(prepared, view.enemy, view.move, false, `${skill.name} setzt ${definition.name} ein.`, world)
+  }
+  if (skill.effect.kind === 'ward') {
+    const definition = getStatusDefinition(world, skill.effect.effectId)
+    if (!definition || definition.target !== 'player') return null
+    prepared = {
+      ...prepared,
+      activeCombat: {
+        ...prepared.activeCombat!,
+        playerEffects: addStatusEffect(prepared.activeCombat!.playerEffects, definition, skill.effect.duration)
+      }
+    }
+    return resolveEnemyTurn(prepared, view.enemy, view.move, false, `${skill.name} errichtet ${definition.name}.`, world)
+  }
+  return resolveEnemyTurn(prepared, view.enemy, view.move, false, `${skill.name} unterbricht die angekündigte Bewegung.`, world, `${view.enemy.name} verliert ${view.move.name}.`)
 }
 
 export function defend(save: GameSave, world: WorldDefinition): CombatTransition | null {

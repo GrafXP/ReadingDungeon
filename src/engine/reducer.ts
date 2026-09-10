@@ -1,12 +1,13 @@
 import type { WorldDefinition } from '../domain/content'
 import { JOURNAL_LIMIT, type GameEvent, type GameSave } from '../domain/game'
 import { evaluateRequirement } from './requirements'
-import { isInteractionComplete, otherEnd, type GameAction } from './actions'
-import { attack, completeFinalCombatAction, defend, flee, placeSeal, respawn, startCombat, useCombatItem, type CombatTransition } from './combat'
+import { isInteractionComplete, isPuzzleComplete, otherEnd, type GameAction } from './actions'
+import { attack, completeFinalCombatAction, defend, flee, placeSeal, respawn, startCombat, useCombatItem, useWeaponSkill, type CombatTransition } from './combat'
 import { applyEffect } from './effects'
-import { getPuzzleState, isPuzzleSolved } from './puzzles'
+import { getPuzzleState, isPuzzleSolved, updatePuzzleState } from './puzzles'
 import { getAreaInspectText } from './selectors'
 import { getHintLevel, getHintTexts, hintId } from './hints'
+import { DAMAGE_TYPE_LABELS } from './damage'
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)]
@@ -60,10 +61,22 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
   }
 
   if (save.activeCombat) {
+    if (action.type === 'STUDY_ENEMY') {
+      if (!save.activeCombat.combatants.some((combatant) => combatant.enemyId === action.enemyId) || save.studiedEnemyIds.includes(action.enemyId)) return save
+      const enemy = world.enemies.find((entry) => entry.id === action.enemyId)
+      if (!enemy) return save
+      return withEvent({ ...save, studiedEnemyIds: unique([...save.studiedEnemyIds, enemy.id]) }, `Du beobachtest ${enemy.name}: Schwächen, Widerstände und Bewegungen stehen jetzt im Register.`, `study:${enemy.id}`)
+    }
+    if (action.type === 'SET_TARGET') {
+      if (!Number.isSafeInteger(action.targetIndex) || action.targetIndex < 0 || action.targetIndex >= save.activeCombat.combatants.length || action.targetIndex === save.activeCombat.targetIndex || save.activeCombat.combatants[action.targetIndex].life === 0) return save
+      const enemy = world.enemies.find((entry) => entry.id === save.activeCombat!.combatants[action.targetIndex].enemyId)
+      return withEvent({ ...save, activeCombat: { ...save.activeCombat, targetIndex: action.targetIndex } }, `Du zielst jetzt auf ${enemy?.name ?? 'den anderen Gegner'}.`, `target:${action.targetIndex}`)
+    }
     if (action.type === 'PLACE_SEAL') return finishCombatTransition(save, placeSeal(save, action.itemId, world))
     if (action.type === 'COMPLETE_FINAL_ACTION') return finishCombatTransition(save, completeFinalCombatAction(save, world))
     if (action.type === 'ATTACK') return finishCombatTransition(save, attack(save, world))
     if (action.type === 'DEFEND') return finishCombatTransition(save, defend(save, world))
+    if (action.type === 'USE_SKILL') return finishCombatTransition(save, useWeaponSkill(save, world))
     if (action.type === 'FLEE') return finishCombatTransition(save, flee(save, world))
     if (action.type === 'USE_ITEM') return finishCombatTransition(save, useCombatItem(save, action.itemId, world))
     return save
@@ -74,38 +87,30 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
   }
   if (action.type === 'PUZZLE_INPUT' || action.type === 'PUZZLE_RESET') {
     const puzzle = world.puzzles?.find((entry) => entry.id === action.puzzleId && entry.areaId === save.currentAreaId)
-    const interaction = puzzle && world.interactions.find((entry) => entry.id === puzzle.interactionId)
-    if (!puzzle || !interaction || isInteractionComplete(interaction, save)) return save
+    if (!puzzle || isPuzzleComplete(save, puzzle, world)) return save
     let text = 'Die Ausgangsstellung ist wiederhergestellt. Deine Gegenstände bleiben bei dir.'
     let next: GameSave = { ...save, puzzleStates: { ...save.puzzleStates } }
     if (action.type === 'PUZZLE_RESET') {
       delete next.puzzleStates[puzzle.id]
     } else {
-      if (!Number.isSafeInteger(action.value) || action.value < 0) return save
       const state = getPuzzleState(save, puzzle)
-      const values = { ...state.values }
-      if (action.controlId === 'sequence' && puzzle.sequence) {
-        if (action.value >= puzzle.sequence.options.length) return save
-        const progress = Number(values.sequence)
-        if (progress === puzzle.sequence.solution.length) return save
-        const correct = puzzle.sequence.solution[progress] === action.value
-        values.sequence = correct ? progress + 1 : 0
-        text = correct ? `${puzzle.sequence.options[action.value]} stimmt. ${progress + 1} von ${puzzle.sequence.solution.length} Zeichen.` : 'Das passt noch nicht. Die Folge beginnt von vorn; du verlierst nichts.'
-      } else {
-        const control = puzzle.controls.find((entry) => entry.id === action.controlId)
-        if (!control || action.value >= control.options.length || values[control.id] === action.value) return save
-        values[control.id] = action.value
-        if (puzzle.maxOpenControls && puzzle.controls.filter((entry) => values[entry.id] === 1).length > puzzle.maxOpenControls) {
-          return withEvent(save, 'Die Sicherung hält: Schliesse zuerst ein anderes Tor. Höchstens zwei Tore können offen sein.', `puzzle:${puzzle.id}:limit`)
-        }
-        text = `${control.label}: ${control.options[action.value]}.`
-      }
-      next.puzzleStates[puzzle.id] = { kind: 'controls', values }
+      const update = updatePuzzleState(state, puzzle, action.controlId, action.value)
+      if (!update) return save
+      text = update.text
+      next.puzzleStates[puzzle.id] = update.state
     }
     if (isPuzzleSolved(next, puzzle)) text += ' Das Rätsel ist gelöst. Du kannst es jetzt abschliessen, sobald alle benötigten Teile da sind.'
     return withEvent(next, text, `puzzle:${puzzle.id}`)
   }
-  if (action.type === 'ATTACK' || action.type === 'DEFEND' || action.type === 'FLEE' || action.type === 'RESPAWN' || action.type === 'PLACE_SEAL' || action.type === 'COMPLETE_FINAL_ACTION') return save
+  if (action.type === 'COMPLETE_PUZZLE') {
+    const puzzle = world.puzzles?.find((entry) => entry.id === action.puzzleId && entry.areaId === save.currentAreaId)
+    if (!puzzle?.completion || isPuzzleComplete(save, puzzle, world) || !isPuzzleSolved(save, puzzle)) return save
+    let completed = save
+    for (const effect of puzzle.completion.effects) completed = applyEffect(completed, effect, world)
+    completed = { ...completed, flags: unique([...completed.flags, `raetsel_abgeschlossen:${puzzle.id}`]) }
+    return withEvent(completed, puzzle.completion.resultText, `puzzle-complete:${puzzle.id}`)
+  }
+  if (action.type === 'ATTACK' || action.type === 'DEFEND' || action.type === 'USE_SKILL' || action.type === 'STUDY_ENEMY' || action.type === 'SET_TARGET' || action.type === 'FLEE' || action.type === 'RESPAWN' || action.type === 'PLACE_SEAL' || action.type === 'COMPLETE_FINAL_ACTION') return save
 
   if (action.type === 'REST') {
     const area = world.areas.find((entry) => entry.id === save.currentAreaId)
@@ -189,6 +194,28 @@ function transitionGame(save: GameSave, action: GameAction, world: WorldDefiniti
       player: { ...save.player, equippedWeaponId: item.id }
     }
     return withEvent(equipped, `Du rüstest ${item.name} aus.`, `equip:${item.id}`)
+  }
+
+  if (action.type === 'EQUIP_ARMOR' || action.type === 'EQUIP_TALISMAN') {
+    const item = world.items.find((entry) => entry.id === action.itemId)
+    const expectedSlot = action.type === 'EQUIP_ARMOR' ? 'body' : 'talisman'
+    const equippedId = expectedSlot === 'body' ? save.player.equippedArmorId : save.player.equippedTalismanId
+    if (item?.kind !== 'armor' || item.armor?.slot !== expectedSlot || (save.player.inventory[item.id] ?? 0) < 1 || equippedId === item.id) return save
+    const player = expectedSlot === 'body'
+      ? { ...save.player, equippedArmorId: item.id }
+      : { ...save.player, equippedTalismanId: item.id }
+    return withEvent({ ...save, player }, `Du rüstest ${item.name} als ${expectedSlot === 'body' ? 'Rüstung' : 'Talisman'} aus.`, `equip:${item.id}`)
+  }
+
+  if (action.type === 'SET_WEAPON_MODE') {
+    const area = world.areas.find((entry) => entry.id === save.currentAreaId)
+    const item = world.items.find((entry) => entry.id === action.itemId)
+    const elemental = item?.weapon?.elemental
+    if (!area?.safe || !evaluateRequirement(area.sanctuaryRequirement, save).met || !item?.weapon || !elemental || !('choices' in elemental) || !elemental.choices.includes(action.damageType) || (save.player.inventory[item.id] ?? 0) < 1 || (save.player.weaponElementModes[item.id] ?? elemental.choices[0]) === action.damageType) return save
+    return withEvent({
+      ...save,
+      player: { ...save.player, weaponElementModes: { ...save.player.weaponElementModes, [item.id]: action.damageType } }
+    }, `Du stellst ${item.name} am Rastplatz auf ${DAMAGE_TYPE_LABELS[action.damageType]}.`, `mode:${item.id}:${action.damageType}`)
   }
 
   const interaction = world.interactions.find((entry) => entry.id === action.interactionId)

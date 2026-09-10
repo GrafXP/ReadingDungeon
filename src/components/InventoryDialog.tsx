@@ -1,10 +1,11 @@
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { GameSave } from '../domain/game'
-import type { WorldDefinition } from '../domain/content'
+import type { ArmorDefinition, DamageType, WorldDefinition } from '../domain/content'
 import { getInventoryActions } from '../engine/actions'
 import { getInventoryItems } from '../engine/selectors'
 import { getCombatView } from '../engine/combat'
+import { DAMAGE_TYPE_ICONS, DAMAGE_TYPE_LABELS } from '../engine/damage'
 
 interface InventoryDialogProps {
   game: GameSave
@@ -22,6 +23,18 @@ const KIND_LABELS = {
   tool: 'Werkzeug',
   quest: 'Wichtiger Gegenstand'
 } as const
+
+function gearDamage(damageType: DamageType, body?: ArmorDefinition, talisman?: ArmorDefinition): number {
+  const gear = [body, talisman].filter((entry): entry is ArmorDefinition => Boolean(entry))
+  if (gear.some((entry) => entry.immuneTo?.includes(damageType))) return 0
+  let damage = 6
+  if (gear.some((entry) => entry.protectsFrom?.includes(damageType))) damage = Math.ceil(damage / 2)
+  return Math.max(1, damage - gear.reduce((sum, entry) => sum + entry.defense, 0))
+}
+
+function damageTypeList(types: DamageType[] | undefined): string {
+  return types?.length ? types.map((type) => `${DAMAGE_TYPE_ICONS[type]} ${DAMAGE_TYPE_LABELS[type]}`).join(', ') : '—'
+}
 
 export function InventoryDialog({ game, world, returnFocusRef, onAction, onClose }: InventoryDialogProps) {
   const inventory = useMemo(() => getInventoryItems(game, world), [game, world])
@@ -74,6 +87,11 @@ export function InventoryDialog({ game, world, returnFocusRef, onAction, onClose
 
   const actions = selectedEntry ? getInventoryActions(game, selectedEntry.item) : []
   const combatView = getCombatView(game, world)
+  const equippedBody = world.items.find((item) => item.id === game.player.equippedArmorId)?.armor
+  const equippedTalisman = world.items.find((item) => item.id === game.player.equippedTalismanId)?.armor
+  const selectedArmor = selectedEntry?.item.armor
+  const proposedBody = selectedArmor?.slot === 'body' ? selectedArmor : equippedBody
+  const proposedTalisman = selectedArmor?.slot === 'talisman' ? selectedArmor : equippedTalisman
 
   return createPortal(
     <div className="inventory-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -116,15 +134,36 @@ export function InventoryDialog({ game, world, returnFocusRef, onAction, onClose
               </div>
               <p className="item-kind">{KIND_LABELS[selectedEntry.item.kind]}</p>
               <h3>{selectedEntry.item.name}</h3>
-              {game.player.equippedWeaponId === selectedEntry.item.id && <span className="equipped-badge">Ausgerüstet</span>}
+              {(game.player.equippedWeaponId === selectedEntry.item.id || game.player.equippedArmorId === selectedEntry.item.id || game.player.equippedTalismanId === selectedEntry.item.id) && <span className="equipped-badge">Ausgerüstet</span>}
               <p>{selectedEntry.item.description}</p>
 
               {selectedEntry.item.weapon && (
                 <dl className="item-stats">
-                  <div><dt>Schaden</dt><dd>{selectedEntry.item.weapon.minDamage}–{selectedEntry.item.weapon.maxDamage}</dd></div>
+                  <div><dt>Schaden</dt><dd><span>{selectedEntry.item.weapon.minDamage}–{selectedEntry.item.weapon.maxDamage}</span> {DAMAGE_TYPE_ICONS[selectedEntry.item.weapon.damageType]} {DAMAGE_TYPE_LABELS[selectedEntry.item.weapon.damageType]}</dd></div>
+                  {selectedEntry.item.weapon.elemental && <div><dt>Element</dt><dd>{'type' in selectedEntry.item.weapon.elemental
+                    ? `${DAMAGE_TYPE_ICONS[selectedEntry.item.weapon.elemental.type]} ${DAMAGE_TYPE_LABELS[selectedEntry.item.weapon.elemental.type]} +${selectedEntry.item.weapon.elemental.amount}`
+                    : `${selectedEntry.item.weapon.elemental.choices.map((type) => `${DAMAGE_TYPE_ICONS[type]} ${DAMAGE_TYPE_LABELS[type]}`).join(' / ')} +${selectedEntry.item.weapon.elemental.amount}`}</dd></div>}
                   <div><dt>Eigenschaft</dt><dd>{selectedEntry.item.weapon.trait}</dd></div>
+                  {selectedEntry.item.weapon.skill && <div><dt>Waffenkunst</dt><dd>{selectedEntry.item.weapon.skill.name}: {selectedEntry.item.weapon.skill.description}</dd></div>}
                 </dl>
               )}
+              {selectedArmor && <>
+                <dl className="item-stats">
+                  <div><dt>Platz</dt><dd>{selectedArmor.slot === 'body' ? 'Körperrüstung' : 'Talisman'}</dd></div>
+                  <div><dt>Panzerung</dt><dd>{selectedArmor.defense}</dd></div>
+                  <div><dt>Halbiert</dt><dd>{damageTypeList(selectedArmor.protectsFrom)}</dd></div>
+                  <div><dt>Immun</dt><dd>{damageTypeList(selectedArmor.immuneTo)}</dd></div>
+                  {selectedArmor.penalty && <div><dt>Nachteil</dt><dd>{selectedArmor.penalty.text}</dd></div>}
+                </dl>
+                <section className="gear-comparison" aria-labelledby={`compare-${selectedEntry.item.id}`}>
+                  <h4 id={`compare-${selectedEntry.item.id}`}>Vergleich bei 6 Schaden</h4>
+                  <ul>{(['physical', 'fire', 'ice', 'lightning', 'light', 'shadow'] as DamageType[]).map((type) => {
+                    const current = gearDamage(type, equippedBody, equippedTalisman)
+                    const proposed = gearDamage(type, proposedBody, proposedTalisman)
+                    return <li key={type}><span>{DAMAGE_TYPE_ICONS[type]} {DAMAGE_TYPE_LABELS[type]}</span><strong>{current} → {proposed}</strong></li>
+                  })}</ul>
+                </section>
+              </>}
               {selectedEntry.item.healing && (
                 <dl className="item-stats">
                   <div><dt>Heilung</dt><dd>+{selectedEntry.item.healing.lifeRestored} Leben</dd></div>

@@ -24,6 +24,10 @@ describe('Kampfanzeige', () => {
     expect(screen.getByRole('heading', { name: 'Wellenrolle' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Fliehen/ })).toHaveTextContent('Kampf verlassen')
     expect(screen.getByRole('button', { name: /Fliehen/ })).toHaveAttribute('aria-disabled', 'false')
+    expect(document.querySelector('.enemy-knowledge p')).toHaveTextContent('unbekannt')
+    expect(screen.getByRole('button', { name: 'Beobachten' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Waffenkunst/ })).toHaveAttribute('aria-disabled', 'true')
+    expect(document.querySelectorAll('.combat-actions button')).toHaveLength(5)
   })
 
   it('sendet klare Kampfaktionen', async () => {
