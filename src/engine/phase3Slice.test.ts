@@ -62,12 +62,12 @@ describe('Phase 3: Kesselbrück und Blätterdächer', () => {
   it('liefert den vollständigen 16-Orte-Vertikalschnitt und hält spätere Inventarlücken sichtbar', () => {
     const report = validateWorld(world, { allowIncomplete: true })
     expect(report.valid).toBe(true)
-    expect(world.areas).toHaveLength(16)
+    expect(world.areas).toHaveLength(39)
     expect(world.areas.every((area) => area.firstDescription.length > 100 && area.revisitDescription.length > 60 && area.variants?.length)).toBe(true)
-    expect(world.puzzles?.map((puzzle) => puzzle.kind)).toEqual(['pairing', 'pairing', 'reading', 'weighing'])
-    expect(world.enemies).toHaveLength(7)
-    expect(world.encounters).toHaveLength(8)
-    expect(report.contentGaps).toContain('Orte: 62 von 78 fehlen.')
+    expect(world.puzzles?.slice(0, 4).map((puzzle) => puzzle.kind)).toEqual(['pairing', 'pairing', 'reading', 'weighing'])
+    expect(world.enemies.slice(0, 7)).toHaveLength(7)
+    expect(world.encounters.slice(0, 8)).toHaveLength(8)
+    expect(report.contentGaps).toContain('Orte: 39 von 78 fehlen.')
   })
 
   it('spielt den Pflichtweg vom neuen Spiel bis zum ersten Freigabestempel', () => {

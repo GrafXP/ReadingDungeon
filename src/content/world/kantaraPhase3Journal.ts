@@ -102,7 +102,14 @@ export const kantaraPhase3StoryBeats: NonNullable<WorldDefinition['storyBeats']>
   },
   {
     id: 'erster_freigabestempel',
-    requirement: { kind: 'item', itemId: 'item_quest_blaetterstempel' },
-    text: 'Klick betrachtet den Blätterstempel und den fehlerhaften Sammelbefehl. «Das Werk sammelt nicht nur Kisten, sondern auch Kräfte und Wege. Das ist keine Zustellung.» In Kesselbrück öffnet Ina die erste sichere Abkürzung.'
+    requirement: {
+      kind: 'any',
+      requirements: [
+        { kind: 'item', itemId: 'item_quest_blaetterstempel' },
+        { kind: 'item', itemId: 'item_quest_deltastempel' },
+        { kind: 'item', itemId: 'item_quest_werftstempel' }
+      ]
+    },
+    text: 'Klick betrachtet den ersten Freigabestempel und den fehlerhaften Sammelbefehl. «Das Werk sammelt nicht nur Kisten, sondern auch Kräfte und Wege. Das ist keine Zustellung.» Das erste regionale Team bricht zu den Wechselgängen auf.'
   }
 ]

@@ -29,11 +29,12 @@ npm run preview
 ## Stand
 
 Die aktive App beginnt mit einer jederzeit im Kurierhof erneut lesbaren
-Einführung. Danach startet der vollständige Kantara-Vertikalschnitt im Kurierhof
-und führt durch Kesselbrück und die Blätterdächer bis zum ersten
-Freigabestempel. Der vollständig spielbare Talora-Prototyp bleibt als getrenntes
-Inhaltsmodul für Umsetzungsreferenz und Regressionstests erhalten, ist aber kein
-Kanon der neuen Kampagne.
+Einführung. Danach startet die offene erste Hälfte von Kantara im Kurierhof und
+führt in frei wählbarer Reihenfolge durch Blätterdächer, Kanaldelta und
+Sturmwerft. Drei Freigabestempel öffnen über die Wechselgänge gleichzeitig die
+drei grossen Aussenregionen. Der vollständig spielbare Talora-Prototyp bleibt
+als getrenntes Inhaltsmodul für Umsetzungsreferenz und Regressionstests
+erhalten, ist aber kein Kanon der neuen Kampagne.
 
 Bereits vorhanden sind:
 
@@ -80,12 +81,20 @@ Bereits vorhanden sind:
 - Aststampfer als Rammstoss-Wegwächter und Kronenheber als zweiphasiger
   Umleiter mit Verteidigung, Kapphieb, Flucht und verlustfreier Rettung;
 - Aufgabenführung und freischaltbare Regelkarten in Klicks Register;
+- neun fertige Orte im Kanaldelta mit Suri, Bo, Schleusen- und Pegelrätseln,
+  erneuerbaren Wasserwerkstoffen, Bootsspeer, Schottknacker und Deltarad;
+- neun fertige Orte in der Sturmwerft mit Rika, Jaro, Warnfahnen, Erdung,
+  Spulenhammer, Spulenläufer und Wolkenspule;
+- fünf Wechselgänge mit Bergungslager, Kreuzweiche, drei stempelabhängigen
+  Zugängen und vorbereitetem Prismenöffner;
+- frei wählbare Reihenfolge aller drei nahen Regionen, geprüft in allen sechs
+  Varianten durch Logik- und Browsertests;
 - Weltvalidator, automatische Balance-Simulationen sowie Logik-, Komponenten-
   und Browserprüfungen.
 
 ## Nächste Iteration
 
-Phase 0 bis Phase 3 sind abgeschlossen: Das exakte Inhaltsinventar, die
-Kampagnengrenze und der vorzeigbare Vertikalschnitt für Kesselbrück und
-Blätterdächer stehen. Als Nächstes folgt Phase 4 mit Kanaldelta, Sturmwerft und
-den Wechselgängen.
+Phase 0 bis Phase 4 sind abgeschlossen: 39 Orte bilden die offene erste
+Kampagnenhälfte; Blätterdächer, Kanaldelta und Sturmwerft sind unabhängig
+spielbar, und der Prismenöffner gibt Feuer, Eis und Licht gleichzeitig frei.
+Als Nächstes folgt Phase 5 mit Glascaldera, Frostobservatorium und Laternenmoor.

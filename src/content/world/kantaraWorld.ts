@@ -4,13 +4,19 @@ import { kantaraInventory } from './kantaraInventory'
 import { kantaraPhase3Enemies, kantaraPhase3Encounters } from './kantaraPhase3Combat'
 import { kantaraPhase3Interactions } from './kantaraPhase3Interactions'
 import { kantaraPhase3Items } from './kantaraPhase3Items'
-import { kantaraPhase3Journal, kantaraPhase3RuleCards, kantaraPhase3StoryBeats } from './kantaraPhase3Journal'
+import { kantaraPhase3RuleCards, kantaraPhase3StoryBeats } from './kantaraPhase3Journal'
 import { kantaraPhase3Areas, kantaraPhase3Passages } from './kantaraPhase3Places'
 import { kantaraPhase3Puzzles } from './kantaraPhase3Puzzles'
+import { kantaraPhase4Enemies, kantaraPhase4Encounters } from './kantaraPhase4Combat'
+import { kantaraPhase4Interactions } from './kantaraPhase4Interactions'
+import { kantaraPhase4Items } from './kantaraPhase4Items'
+import { kantaraPhase4Journal, kantaraPhase4RuleCards, kantaraPhase4StoryBeats } from './kantaraPhase4Journal'
+import { kantaraPhase4Areas, kantaraPhase4Passages } from './kantaraPhase4Places'
+import { kantaraPhase4Puzzles } from './kantaraPhase4Puzzles'
 
 /**
- * Active Kantara campaign. Phase 3 provides the complete Kesselbrück and
- * Blätterdächer vertical slice; later regions remain explicit inventory gaps.
+ * Active Kantara campaign. Phase 4 completes the freely ordered first ring
+ * and its connector tunnels; later outer regions remain inventory gaps.
  */
 export const kantaraWorld: WorldDefinition = {
   campaignId: 'kantara',
@@ -65,14 +71,14 @@ export const kantaraWorld: WorldDefinition = {
   },
   completionRequirement: { kind: 'flag', flag: 'kantara_abgeschlossen' },
   statusEffects: KANTARA_STATUS_EFFECTS,
-  journal: kantaraPhase3Journal,
-  ruleCards: kantaraPhase3RuleCards,
-  storyBeats: kantaraPhase3StoryBeats,
-  puzzles: kantaraPhase3Puzzles,
-  areas: kantaraPhase3Areas,
-  passages: kantaraPhase3Passages,
-  items: kantaraPhase3Items,
-  interactions: kantaraPhase3Interactions,
-  enemies: kantaraPhase3Enemies,
-  encounters: kantaraPhase3Encounters
+  journal: kantaraPhase4Journal,
+  ruleCards: [...kantaraPhase3RuleCards, ...kantaraPhase4RuleCards],
+  storyBeats: [...kantaraPhase3StoryBeats, ...kantaraPhase4StoryBeats],
+  puzzles: [...kantaraPhase3Puzzles, ...kantaraPhase4Puzzles],
+  areas: [...kantaraPhase3Areas, ...kantaraPhase4Areas],
+  passages: [...kantaraPhase3Passages, ...kantaraPhase4Passages],
+  items: [...kantaraPhase3Items, ...kantaraPhase4Items],
+  interactions: [...kantaraPhase3Interactions, ...kantaraPhase4Interactions],
+  enemies: [...kantaraPhase3Enemies, ...kantaraPhase4Enemies],
+  encounters: [...kantaraPhase3Encounters, ...kantaraPhase4Encounters]
 }

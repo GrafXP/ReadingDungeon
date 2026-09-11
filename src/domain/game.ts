@@ -1,7 +1,7 @@
 import type { DamageType, WorldDefinition } from './content'
 
 export const SAVE_SCHEMA_VERSION = 6
-export const CONTENT_VERSION = 6
+export const CONTENT_VERSION = 7
 
 /** Upper bound so a very long run cannot grow the save without limit. */
 export const JOURNAL_LIMIT = 1000

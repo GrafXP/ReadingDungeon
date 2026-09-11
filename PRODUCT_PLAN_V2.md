@@ -952,6 +952,11 @@ Entwicklungsstand.
 
 ### Phase 4 — Die offene erste Hälfte
 
+**Status: abgeschlossen am 10. September 2026.** Kanaldelta, Sturmwerft und die
+Wechselgänge erweitern die aktive Welt auf 39 fertige Orte. Alle drei nahen
+Regionen sind unabhängig voneinander spielbar; sechs Logik- und sechs
+Browserpfade prüfen jede Reihenfolge bis zum Prismenöffner.
+
 - Kanaldelta und Sturmwerft mit je 9 Orten sowie die 5 Wechselgänge umsetzen;
   die Welt umfasst danach 39 fertige Orte
 - Suri, Bo, Rika und Jaro samt regionalen Handlungsbögen und späteren

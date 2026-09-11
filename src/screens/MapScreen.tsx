@@ -11,7 +11,7 @@ const MIN_ZOOM = 1
 const MAX_ZOOM = 4
 const ZOOM_STEP = 0.5
 const DEFAULT_ZOOM = 3
-const MAP_VIEW_BOX = { x: 20, y: 45, width: 960, height: 730 }
+const MAP_VIEW_BOX = { x: 20, y: 35, width: 1580, height: 740 }
 
 export function MapScreen() {
   const { game } = useAppState()
@@ -100,13 +100,14 @@ export function MapScreen() {
           <button type="button" className="map-zoom-reset" onClick={() => changeZoom(MIN_ZOOM)} disabled={zoom === MIN_ZOOM}>Ganze Karte</button>
         </div>
         <div className="map-viewport" ref={viewportRef} tabIndex={0} style={{ ['--map-zoom' as string]: zoom }}>
-        <svg viewBox="20 45 960 730" role="img" aria-labelledby="map-title map-description">
+        <svg viewBox="20 35 1580 740" role="img" aria-labelledby="map-title map-description">
           <title id="map-title">Entdeckte Orte in {activeWorld.presentation.fallbackPlaceName}</title>
           <desc id="map-description">Die gleiche Verbindungsliste wie in der Reiseansicht, grafisch dargestellt.</desc>
           <path className="region-shape region-shape--forest" d="M35 190 Q210 120 345 245 L300 610 Q140 680 35 565Z" />
           <path className="region-shape region-shape--mark" d="M315 225 Q485 185 630 285 L575 480 Q430 505 310 410Z" />
-          <path className="region-shape region-shape--mountain" d="M555 55 Q800 15 970 125 L925 420 Q720 400 565 335Z" />
-          <path className="region-shape region-shape--coast" d="M535 395 Q765 360 970 430 L955 705 Q730 760 535 600Z" />
+          <path className="region-shape region-shape--mountain" d="M555 45 Q900 5 1245 105 L1235 345 Q900 375 565 335Z" />
+          <path className="region-shape region-shape--coast" d="M535 395 Q900 360 1245 430 L1235 720 Q880 770 535 600Z" />
+          <path className="region-shape region-shape--mark" d="M1240 215 Q1450 180 1585 285 L1580 525 Q1420 565 1240 500Z" />
           <path className="region-shape region-shape--final" d="M455 470 L555 470 L580 775 L430 775Z" />
           {knownPassages.map((passage) => {
             const from = activeWorld.areas.find((area) => area.id === passage.fromAreaId)!

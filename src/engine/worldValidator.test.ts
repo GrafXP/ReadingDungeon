@@ -4,19 +4,19 @@ import type { WorldDefinition } from '../domain/content'
 import { validateWorld } from './worldValidator'
 
 describe('Weltvalidator', () => {
-  it('macht alle noch fehlenden Phase-0-Inhaltsgruppen nach dem Phase-3-Schnitt sichtbar', () => {
+  it('macht alle noch fehlenden Phase-0-Inhaltsgruppen nach der offenen ersten Hälfte sichtbar', () => {
     const scaffold = validateWorld(kantaraWorld, { allowIncomplete: true })
 
     expect(scaffold.valid).toBe(true)
     expect(scaffold.completionReachable).toBe(false)
     expect(scaffold.contentGaps).toEqual([
-      'Orte: 62 von 78 fehlen.',
-      'Verbindungen: 87 von 108 fehlen.',
-      'Gegenstände: 65 von 85 fehlen.',
-      'Interaktionen: 92 von 110 fehlen.',
-      'Rätsel: 14 von 18 fehlen.',
-      'Gegnertypen: 32 von 39 fehlen.',
-      'Begegnungen: 40 von 48 fehlen.'
+      'Orte: 39 von 78 fehlen.',
+      'Verbindungen: 52 von 108 fehlen.',
+      'Gegenstände: 38 von 85 fehlen.',
+      'Interaktionen: 58 von 110 fehlen.',
+      'Rätsel: 7 von 18 fehlen.',
+      'Gegnertypen: 19 von 39 fehlen.',
+      'Begegnungen: 24 von 48 fehlen.'
     ])
     expect(scaffold.missingContentIds.areas).not.toContain('kb_sortierhalle')
     expect(scaffold.missingContentIds.areas).not.toContain('kb_kurierhof')

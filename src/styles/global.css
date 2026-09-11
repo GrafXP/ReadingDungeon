@@ -163,6 +163,11 @@ p { line-height: 1.62; }
 /* Only a slim mood strip: sun, horizon and region landmark stay, the text gets the rest. */
 .play-screen { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: stretch; }
 .atmosphere-panel { position: relative; min-height: 620px; overflow: hidden; border-radius: 24px 0 0 24px; background: linear-gradient(#82c8bd 0%, #cce2c5 49%, #8aac76 50%, #31594b 100%); box-shadow: var(--shadow); }
+.atmosphere-panel--kesselbrueck { background: linear-gradient(#91c9d0 0%, #d9e6d2 42%, #b99168 43%, #4f5f58 100%); }
+.atmosphere-panel--blaetterdaecher { background: linear-gradient(#87c8a0 0%, #d5e6ad 38%, #598354 39%, #214c3a 100%); }
+.atmosphere-panel--kanaldelta { background: linear-gradient(#78c3cf 0%, #d8ebd9 40%, #80a889 41%, #246b78 68%, #174f62 100%); }
+.atmosphere-panel--sturmwerft { background: linear-gradient(#60788c 0%, #c6d0d5 41%, #a58c6c 42%, #3f4a48 100%); }
+.atmosphere-panel--wechselgaenge { background: linear-gradient(#776a59 0%, #b59e75 35%, #5f5548 36%, #263b3a 100%); }
 .atmosphere-panel--spiegelkueste { background: linear-gradient(#76c6c5 0%, #c7ece4 43%, #ddce9f 44%, #568c83 67%, #245a64 100%); }
 .atmosphere-panel--wisperwald { background: linear-gradient(#80b6a1 0%, #c8dcae 38%, #5f8a5b 39%, #173f34 100%); }
 .atmosphere-panel--donnerhoehe { background: linear-gradient(#617c91 0%, #b9c9cf 42%, #917e65 43%, #3d433e 100%); }
@@ -185,6 +190,14 @@ p { line-height: 1.62; }
 .atmosphere-panel--donnerhoehe .region-landmark i { inset: 45px 15px 0; clip-path: polygon(50% 0,100% 100%,0 100%); background: #5c554b; }
 .atmosphere-panel--donnerhoehe .region-landmark b { top: 0; left: 52px; width: 12px; height: 92px; transform: rotate(18deg); background: #e9cb5f; clip-path: polygon(35% 0,100% 0,60% 45%,95% 45%,0 100%,34% 52%,0 52%); }
 .atmosphere-panel--jenseits_des_tors .region-landmark i { inset: 0 28px; border: 8px solid #d1b35d; border-bottom: 0; border-radius: 55px 55px 0 0; box-shadow: 0 0 28px rgba(225,194,99,.3); }
+.atmosphere-panel--kanaldelta .region-landmark i { right: 12px; bottom: 0; width: 92px; height: 85px; border: 9px solid #e5d6a8; border-radius: 50%; background: rgba(46,111,119,.45); }
+.atmosphere-panel--kanaldelta .region-landmark b { right: 50px; bottom: 0; width: 12px; height: 120px; background: #715e43; }
+.atmosphere-panel--kanaldelta .region-landmark span { right: 0; bottom: 12px; width: 120px; height: 14px; border-radius: 8px; background: #d7c58c; transform: rotate(-8deg); }
+.atmosphere-panel--sturmwerft .region-landmark i { inset: 50px 16px 0; clip-path: polygon(50% 0,100% 100%,0 100%); background: #655d52; }
+.atmosphere-panel--sturmwerft .region-landmark b { top: 0; left: 54px; width: 12px; height: 105px; background: #f0d55e; clip-path: polygon(35% 0,100% 0,60% 45%,95% 45%,0 100%,34% 52%,0 52%); }
+.atmosphere-panel--wechselgaenge .region-landmark i { inset: 24px 8px 0; border: 10px solid #d4bf87; border-bottom: 0; border-radius: 52px 52px 0 0; }
+.atmosphere-panel--wechselgaenge .region-landmark b, .atmosphere-panel--wechselgaenge .region-landmark span { bottom: 18px; left: 16px; width: 88px; height: 9px; border-radius: 8px; background: #403b34; transform: rotate(18deg); }
+.atmosphere-panel--wechselgaenge .region-landmark span { transform: rotate(-18deg); }
 /* In the strip the caption runs bottom to top; the box needs a definite height, or the rotated text spills out. */
 .atmosphere-info { position: absolute; top: 4rem; right: 0; bottom: 1rem; left: 0; display: flex; align-items: center; justify-content: flex-start; gap: .6rem; color: white; text-shadow: 0 1px 4px rgba(8,32,26,.55); writing-mode: vertical-rl; transform: rotate(180deg); }
 .atmosphere-info p { margin: 0; font-size: .7rem; font-weight: 700; letter-spacing: .12em; line-height: 1.2; text-transform: uppercase; }

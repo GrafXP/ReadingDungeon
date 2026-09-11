@@ -1,8 +1,9 @@
 import { assertWorldValid } from '../../engine/worldValidator'
 import { kantaraWorld } from './kantaraWorld'
 
-// Phase 3 intentionally keeps later regions incomplete. Structural references
-// must remain sound; the inventory report keeps every later content gap visible.
+// Phase 4 intentionally keeps the outer regions and finale incomplete.
+// Structural references remain sound; the inventory report keeps those later
+// content gaps visible until their implementation phases.
 assertWorldValid(kantaraWorld, { allowIncomplete: true })
 
 export const activeWorld = kantaraWorld

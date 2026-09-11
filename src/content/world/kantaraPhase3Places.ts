@@ -2,6 +2,8 @@ import type { AreaDefinition, PassageDefinition, Requirement } from '../../domai
 
 const flag = (value: string): Requirement => ({ kind: 'flag', flag: value })
 const item = (itemId: string): Requirement => ({ kind: 'item', itemId })
+const all = (...requirements: Requirement[]): Requirement => ({ kind: 'all', requirements })
+const any = (...requirements: Requirement[]): Requirement => ({ kind: 'any', requirements })
 const changed = (requirement: Requirement, description: string, inspectText = description) => ({ requirement, description, inspectText })
 
 export const kantaraPhase3Areas: AreaDefinition[] = [
@@ -16,6 +18,10 @@ export const kantaraPhase3Areas: AreaDefinition[] = [
     revisitDescription: 'Meral steht an der freien Rückkehrtafel. Der niedrige Übungstisch, dein beschrifteter Spind und der Rastplatz bleiben erreichbar.',
     inspectText: 'Am Käferfach steht «Zum Lesen aufklappen». Merals Tafel erklärt: Ein angekündigtes Rattern bedeutet Deckung. Flucht und Rettung führen ohne verlorene Funde zum letzten Rastplatz.',
     variants: [
+      changed(flag('aussenregionen_geoeffnet'), 'Helfende aus allen drei nahen Regionen stehen an Merals Tafel. Feuer-, Eis- und Lichtweg sind gleichzeitig offen; Klick prüft bereits die ersten äusseren Lieferzettel.'),
+      changed(all(item('item_quest_blaetterstempel'), item('item_quest_deltastempel'), item('item_quest_werftstempel')), 'Fenn, Ina, Suri, Bo, Rika und Jaro sind sicher in Kesselbrück angekommen. Meral hat alle drei Freigabestempel an der Rückkehrtafel eingetragen.'),
+      changed(item('item_quest_werftstempel'), 'Rika und Jaro haben eine geerdete Wetterleine über dem Kurierhof gespannt. Meral trägt den Werftstempel an der freien Rückkehrtafel ein.'),
+      changed(item('item_quest_deltastempel'), 'Suri und Bo bringen einen genauen Pegelplan in den Kurierhof. Meral trägt den Deltastempel an der freien Rückkehrtafel ein.'),
       changed(item('item_quest_blaetterstempel'), 'Fenn und Ina sind sicher in Kesselbrück angekommen. Am Rand des Kurierhofs wachsen geordnete Setzlinge statt wilder Packranken. Meral hat den Blätterstempel auf der freien Tafel eingetragen; Klick fragt jede neue Kiste nun erst nach ihrem Ziel.'),
       changed(flag('medizin_geliefert'), 'Die Medikamentenkiste ist sicher angekommen. Meral hat drei gleichberechtigte Regionsaufträge an die Tafel gehängt. Klick wartet neben deinem Rückweg und Brik hält den Werkhof offen.')
     ]
@@ -31,6 +37,8 @@ export const kantaraPhase3Areas: AreaDefinition[] = [
     revisitDescription: 'Zwischen stillstehenden Sortierarmen liegen die drei vollständig lesbaren Übungsetiketten. Der Ausgangskorb wartet auf die richtige Zuordnung.',
     inspectText: 'Klick fährt jede Zeile ab. «Erst Ziel, dann Inhalt, dann Warnzeichen. Wenn etwas nicht zusammenpasst, fragen wir nach.» Hinter dem Pult beginnt die Halle leise zu beben.',
     variants: [
+      changed(flag('aussenregionen_geoeffnet'), 'Die Sortierhalle gibt drei sauber getrennte Lieferlinien aus: Feuer zur Glascaldera, Eis zum Frostobservatorium und Licht zum Laternenmoor.', 'Jede Aussenlinie trägt Ziel, Gefahr und sicheren Rastplatz. Keine Linie verlangt Fracht aus einer anderen Aussenregion.'),
+      changed(all(item('item_quest_blaetterstempel'), item('item_quest_deltastempel'), item('item_quest_werftstempel')), 'Die Notfracht der drei nahen Regionen ist geordnet. Drei geprüfte Stationsberichte liegen getrennt für den Prismenknoten bereit.'),
       changed(flag('medizin_geliefert'), 'Die Sortierhalle dient jetzt als ruhiges Notlager. Glühende Frostbeeren und eine nasse Wetterspule stehen getrennt auf deutlich beschrifteten Plätzen.', 'Die falschen Lieferungen tragen denselben leuchtenden Sammelbefehl. Er führt zum Vorplatz des Wechselwerks.'),
       changed(flag('uebungsetiketten_geloest'), 'Die Übungspakete stehen richtig. Im selben Moment bebt die Halle: Eine heisse Frostbeerenkiste kommt zurück, eine Wetterspule rollt zum Wassertor und über sechs Leitungen erscheint «Sammeln».')
     ]
@@ -47,6 +55,11 @@ export const kantaraPhase3Areas: AreaDefinition[] = [
     inspectText: 'Eine Vergleichstafel stellt ausgerüstete und neue Werte nebeneinander. Darunter steht: «Ausrüstung ausserhalb eines Kampfes wechseln. Umstellbare Waffen nur am Rastplatz prüfen.»',
     firstVisitRestocks: [{ itemId: 'item_tool_werkhofbuch', quantity: 1 }],
     variants: [
+      changed(flag('aussenregionen_geoeffnet'), 'Der fertige Prismenöffner und der dreifache Kernhalter sitzen in getrennten, beschrifteten Fächern. Brik hat Feuer-, Eis- und Lichtplan gleichzeitig aufgeschlagen.', 'Brik zeigt auf die drei offenen Aussenwege. «Stell den Prismenstab vor jeder Abreise hier am Rastplatz passend ein.»'),
+      changed(flag('stempelfassungen_geprueft'), 'Klicks Rückgabezettel liegt neben drei gefüllten Prismenfassungen. Brik kann den Öffner einsetzen, ohne einen Freigabestempel zu verbrauchen.'),
+      changed(all(item('item_quest_blaetterstempel'), item('item_quest_deltastempel'), item('item_quest_werftstempel')), 'Blatt-, Wellen- und Spulenplan hängen gemeinsam über der Werkbank. Brik hat den Prismenstab vorbereitet und wartet auf die Fassungsprüfung im Wechselgang.'),
+      changed(item('item_quest_werftstempel'), 'Jaros Speicherplan liegt im Werkhofbuch. Brik vergleicht Spulenhammer, Panzerbruch und zwei noch offene Prismenfassungen.'),
+      changed(item('item_quest_deltastempel'), 'Suris Pegelplan liegt im Werkhofbuch. Brik vergleicht Bootsspeer, Nass-Zustand und zwei noch offene Prismenfassungen.'),
       changed(item('item_quest_blaetterstempel'), 'Fenns Blattplan hängt über Briks Werkbank. Neben dem fertigen Astbeil und dem Rindenmuster ist Platz für Baupläne aus weiteren Regionen.', 'Brik zeigt auf drei leere Prismenfassungen. «Ein geprüfter Stempel ist ein Anfang. Zwei weitere fehlen noch.»'),
       changed(flag('rezept_astbeil_bekannt'), 'Fenns Blattplan liegt im Werkhofbuch. Brik hat eine breite Beilklinge und geschichtete Rindenplatten für die ersten beiden Rezepte vorbereitet.')
     ]
@@ -62,6 +75,9 @@ export const kantaraPhase3Areas: AreaDefinition[] = [
     revisitDescription: 'Die Marktsegel spannen sich über die gesicherten Stände. Der Leiterweg zum Dachsteg und der beschriftete Marktweg zu den Blätterdächern bleiben sichtbar.',
     inspectText: 'Die Marktleiterin zeigt zuerst den freien Rückweg zum Kurierhof. Dann öffnet sie den Versorgungskasten und erzählt, dass die erste Dachpost lange vor dem Wechselwerk unterwegs war.',
     variants: [
+      changed(all(item('item_quest_blaetterstempel'), item('item_quest_deltastempel'), item('item_quest_werftstempel')), 'Obst, Fährproviant und trockenes Segeltuch liegen wieder auf drei beschrifteten Marktständen. Menschen aus allen nahen Regionen tauschen sichere Routen aus.'),
+      changed(item('item_quest_werftstempel'), 'Ein Stand mit trockenem Segeltuch ist wieder geöffnet. Rika liest den Wetterbericht, während Jaro die Haken an der falschen Werkzeugbezeichnung erkennt.'),
+      changed(item('item_quest_deltastempel'), 'Ein Fährstand ist wieder geöffnet. Suri liest vor jeder Abfahrt die ganze Pegelzeile; Bo markiert die sichere Kerbe.'),
       changed(item('item_quest_blaetterstempel'), 'Ein Obst- und Seilstand ist wieder geöffnet. Menschen aus den Blätterdächern erzählen, wie Fenn und Ina die Kronenstation gemeinsam geprüft haben.'),
       changed(flag('medizin_geliefert'), 'Die Notstände sind geordnet. Am Blatt-Wegweiser steht nun ausgeschrieben: «Kronengarten – sicherer Rastplatz».')
     ]
@@ -77,6 +93,7 @@ export const kantaraPhase3Areas: AreaDefinition[] = [
     revisitDescription: 'Der hohe Steg überblickt Markt, Werkhof und den verriegelten Vorplatz. Lose Etiketten kleben noch an den Geländern.',
     inspectText: 'Ohne Klebezettel verlieren die Etikettenkrabbler ihren Halt. Der singende Splitter steckt mitten in ihrem Nest; der Marktweg zurück bleibt frei.',
     variants: [
+      changed(item('item_quest_werftstempel'), 'Eine gesicherte Lastenleine verbindet den Dachsteg mit der Drachenwerkstatt. Rikas Spulenzeichen und das ausgeschriebene Ziel hängen nebeneinander.'),
       changed(item('item_quest_blaetterstempel'), 'Ina hat ein breites Halteseil vom Dachsteg zum Vorplatz gespannt. Unter der neuen Abkürzung hängen nur noch richtig beschriftete Lastkörbe.'),
       changed(flag('etikettennest_geraeumt'), 'Das Etikettennest ist leer. Der Resonanzsplitter klingt nun sicher in deinem Gepäck, und der Blick über Kesselbrück ist frei.')
     ]
@@ -92,7 +109,8 @@ export const kantaraPhase3Areas: AreaDefinition[] = [
     revisitDescription: 'Die Annahmestelle am Wassertor ist deutlich mit einer Welle markiert. Durch den Übungstunnel erreichst du jederzeit den Kurierhof.',
     inspectText: 'Merals Lieferzettel warnt: «Rattern kündigt Anrollen an. Verteidige dich; dann steht die Rollkiste einen Moment offen. Beobachten kostet keine Bewegung.»',
     variants: [
-      changed(flag('medizin_geliefert'), 'Die Medizin ist verteilt und die Rollkiste steht gebremst neben dem Tor. Eine Hilfsfähre wartet auf ihre spätere Route ins Kanaldelta.'),
+      changed(item('item_quest_deltastempel'), 'Die Hilfsfähre bedient wieder einen beschrifteten Rundkurs ins Kanaldelta. Suri und Bo haben den Deltastempel am Tor vermerkt.'),
+      changed(flag('medizin_geliefert'), 'Die Medizin ist verteilt und die Rollkiste steht gebremst neben dem Tor. Eine Hilfsfähre wartet auf ihrer offenen Route ins Kanaldelta.'),
       changed(flag('rollkiste_gebremst'), 'Die Rollkiste steht offen neben der Annahmestelle. Der Weg zum Empfänger mit dem Wellenzeichen ist frei.')
     ]
   },
@@ -107,6 +125,8 @@ export const kantaraPhase3Areas: AreaDefinition[] = [
     revisitDescription: 'Der Sammelbefehl leuchtet unverändert über den verriegelten Toren. Rückpfeile zeigen zur Sortierhalle und über die Dächer.',
     inspectText: 'Neben dem Befehl steht Orens Name als Freigabestelle. Klick liest zweimal und klappt dann die Lupe ein. «Naturkräfte sind keine Pakete. Der Auftrag kann nicht stimmen.»',
     variants: [
+      changed(flag('aussenregionen_geoeffnet'), 'Drei Seitenzeichen am Vorplatz leuchten: Feuer, Eis und Licht sind über den Prismenknoten gleichzeitig freigegeben. Die grossen Kernfassungen bleiben noch leer.'),
+      changed(all(item('item_quest_blaetterstempel'), item('item_quest_deltastempel'), item('item_quest_werftstempel')), 'Blatt, Welle und Spule leuchten als drei geprüfte Seitenfelder. Der Weg zum Prismenknoten ist offen; die Haupttore warten weiter auf Rückleitkerne.'),
       changed(item('item_quest_blaetterstempel'), 'Das Blätterzeichen leuchtet in einem Seitenfeld des Vorplatzes. Inas neue Dachleine bildet eine sichere Abkürzung; die drei grossen Kernfassungen bleiben leer.'),
       changed(flag('sammelbefehl_gelesen'), 'Klick hat den fehlerhaften Sammelbefehl im Register vermerkt. Das Haupttor bleibt zu, doch die offenen Regionswege sind klar beschriftet.')
     ]
@@ -252,7 +272,7 @@ export const kantaraPhase3Passages: PassageDefinition[] = [
   { id: 'v002', fromAreaId: 'kb_kurierhof', toAreaId: 'kb_werkhof', labelFrom: 'Gehe zu Briks Werkhof', labelTo: 'Kehre in den Kurierhof zurück' },
   { id: 'v003', fromAreaId: 'kb_kurierhof', toAreaId: 'kb_tauschmarkt', labelFrom: 'Gehe zum Tauschmarkt', labelTo: 'Kehre in den Kurierhof zurück' },
   { id: 'v004', fromAreaId: 'kb_sortierhalle', toAreaId: 'kb_tauschmarkt', labelFrom: 'Folge der richtig etikettierten Ausgangskiste', labelTo: 'Gehe in die Sortierhalle', requirement: flag('uebungsetiketten_geloest'), blockedText: 'Die Ausgangskiste ist noch nicht richtig zugeordnet.' },
-  { id: 'v005', fromAreaId: 'kb_tauschmarkt', toAreaId: 'kb_dachsteg', labelFrom: 'Steige über die Marktleiter zum Dachsteg', labelTo: 'Steige zum Tauschmarkt hinab', requirement: flag('marktleiter_geoeffnet'), blockedText: 'Die Marktleiterin öffnet die Leiter nach der Versorgungskontrolle.' },
+  { id: 'v005', fromAreaId: 'kb_tauschmarkt', toAreaId: 'kb_dachsteg', labelFrom: 'Steige über die Marktleiter zum Dachsteg', labelTo: 'Steige zum Tauschmarkt hinab', requirement: any(flag('marktleiter_geoeffnet'), flag('medizin_geliefert')), blockedText: 'Die Marktleiterin öffnet die Leiter nach der Versorgungskontrolle oder Merals Regionsauftrag.' },
   { id: 'v006', fromAreaId: 'kb_kurierhof', toAreaId: 'kb_wassertor', labelFrom: 'Bringe die Medizin durch den Übungstunnel', labelTo: 'Kehre durch den Übungstunnel zurück', requirement: flag('medizin_erhalten'), blockedText: 'Meral übergibt die Medizin nach der richtigen Etikettenübung.' },
   { id: 'v007', fromAreaId: 'kb_sortierhalle', toAreaId: 'kb_wechselwerk_vorplatz', labelFrom: 'Folge dem Sammelbefehl zum Vorplatz', labelTo: 'Kehre in die Sortierhalle zurück', requirement: flag('medizin_geliefert'), blockedText: 'Die Notlieferung muss zuerst sicher ankommen.' },
   { id: 'v008', fromAreaId: 'kb_dachsteg', toAreaId: 'kb_wechselwerk_vorplatz', labelFrom: 'Nimm Inas neue Dachleine zum Vorplatz', labelTo: 'Nimm Inas Dachleine zum Dachsteg', requirement: item('item_quest_blaetterstempel'), blockedText: 'Ina spannt diese Abkürzung nach der Rettung der Blätterdächer.', shortcut: true },
