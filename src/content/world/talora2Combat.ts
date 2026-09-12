@@ -3,10 +3,10 @@ import type { DamageType, EnemyDefinition, EnemyMoveDefinition, EncounterDefinit
 type MoveKind = EnemyMoveDefinition['kind']
 
 function move(id: string, name: string, damage: number, damageType: DamageType = 'physical', kind: MoveKind = 'normal', effect?: { id: string; duration: number }): EnemyMoveDefinition {
-  const warning = kind === 'heavy' ? `${name} holt weit aus. Verteidige jetzt.`
-    : kind === 'charge' ? `${name} lädt sich auf. Eine unterbrechende Waffenkunst stoppt den Zug.`
-      : kind === 'shield' || kind === 'guard' ? `${name} schützt den Gegner. Warte oder öffne die Deckung.`
-        : kind === 'heal' ? `${name} sammelt Kraft zum Heilen.`
+  const warning = kind === 'heavy' ? `Der Gegner setzt ${name} ein und holt weit aus. Verteidige jetzt.`
+    : kind === 'charge' ? `Der Gegner lädt ${name} auf. Kapphieb oder Kurzschluss können den Zug stoppen; sonst hilft Verteidigen gegen den Treffer.`
+      : kind === 'shield' || kind === 'guard' ? `Der Gegner bereitet ${name} vor und schützt sich. Verteidige, bis seine Deckung wieder offen ist.`
+        : kind === 'heal' ? `Der Gegner bereitet ${name} vor und wird sich heilen. Nutze die Runde zum Angreifen.`
           : `${name} ist der nächste Zug.`
   return {
     id, name, damage, damageType, kind, telegraph: warning,
@@ -82,12 +82,12 @@ const discover = (clueId: string): InteractionEffect => ({ kind: 'discoverClue',
 type EncounterSeed = [id: string, areaId: string, enemyIds: string[], flee: string, rewardEffects?: InteractionEffect[], requiredGear?: Requirement, warning?: string, victoryText?: string]
 const encounterSeeds: EncounterSeed[] = [
   ['enc_sm_schattenzipfel', 'sm_festplatz', ['enemy_sm_schattenzipfel'], 'sm_sonnenwacht', reward(setFlag('schattenzipfel_beruhigt')), undefined, undefined, 'Der kleine Schatten klappt sich wie ein Tuch zusammen. Kuno kniet sich hin. «Du gehörst zu jemandem. Wir finden ihn.»'],
-  ['enc_sm_laternenknabberer', 'sm_tempelgarten', ['enemy_sm_laternenknabberer'], 'sm_sonnenwacht', reward(addItem('item_quest_kartenrand_wald'), discover('item_quest_kartenrand_wald'))],
+  ['enc_sm_laternenknabberer', 'sm_tempelgarten', ['enemy_sm_laternenknabberer'], 'sm_sonnenwacht', reward(addItem('item_consume_kuehlkompresse'))],
   ['enc_ww_moosmuemmler', 'ww_mooslichtung', ['enemy_ww_moosmuemmler'], 'ww_foersterhaus'],
   ['enc_ww_netzkrabbler', 'ww_gluehgarten', ['enemy_ww_netzkrabbler'], 'ww_foersterhaus'],
   ['enc_ww_nachtkauz', 'ww_alte_baumschule', ['enemy_ww_nachtkauz'], 'ww_foersterhaus', reward(addItem('item_armor_rindenpanzer'))],
   ['enc_ww_dornenstampfer', 'ww_rankentor', ['enemy_ww_dornenstampfer'], 'ww_foersterhaus', [], equipped('weapon', 'item_weapon_astbeil'), 'Rüste das Astbeil aus. Verteidige den Rammstoss.'],
-  ['enc_ww_wipfelkauz', 'ww_wipfelsteg', ['enemy_ww_nachtkauz'], 'ww_foersterhaus', reward(addItem('item_quest_kartenrand_wald'), discover('item_quest_kartenrand_wald'))],
+  ['enc_ww_wipfelkauz', 'ww_wipfelsteg', ['enemy_ww_nachtkauz'], 'ww_foersterhaus', reward(addItem('item_consume_apfelbrot'))],
   ['enc_ww_wurzelkrabbler', 'ww_wurzelbruecke', ['enemy_ww_netzkrabbler'], 'ww_foersterhaus', reward(addItem('item_talisman_waechterzeichen'))],
   ['enc_ww_arbors_schatten', 'ww_wurzelheiligtum', ['enemy_ww_arbors_schatten'], 'ww_foersterhaus', reward(setFlag('arbors_schatten_zurueck')), equipped('weapon', 'item_weapon_astbeil'), 'Rüste das Astbeil aus. Kapphieb stoppt die Dornenladung.', 'Arbors Schatten bleibt vor ihm stehen. Arbor senkt sein Geweih. Der Schatten legt den Kopf daneben. Erst dann werden beide wieder eins.'],
 
@@ -97,7 +97,7 @@ const encounterSeeds: EncounterSeed[] = [
   ['enc_sk_muschelbrecher', 'sk_muscheltor', ['enemy_sk_muschelbrecher'], 'sk_muschelhafen', [], equipped('weapon', 'item_weapon_wellenspeer'), 'Rüste den Wellenspeer aus. Der Hebezug öffnet den Panzer.'],
   ['enc_sk_leuchtturmkrabbe', 'sk_alter_leuchtturm', ['enemy_sk_spiegelkrabbe'], 'sk_muschelhafen', reward(addItem('item_talisman_sonnenscherbe'))],
   ['enc_sk_tempelhopser', 'sk_gezeitentempel', ['enemy_sk_pfuetzenhopser'], 'sk_muschelhafen', reward(addItem('item_quest_kartenrand_kueste'), discover('item_quest_kartenrand_kueste'))],
-  ['enc_sk_mareas_schatten', 'sk_gezeitentempel', ['enemy_sk_mareas_schatten'], 'sk_muschelhafen', reward(setFlag('mareas_schatten_zurueck')), equipped('weapon', 'item_weapon_wellenspeer'), 'Rüste den Wellenspeer aus. Schwallstoss und Blitz treffen den offenen Panzer.', 'Der schwarze Panzer wird klar. Mareas Schatten schwimmt einmal um ihr Boot und legt sich ruhig unter sie. Nela flüstert: «Da bist du ja.»'],
+  ['enc_sk_mareas_schatten', 'sk_gezeitentempel', ['enemy_sk_mareas_schatten'], 'sk_muschelhafen', reward(setFlag('mareas_schatten_zurueck')), equipped('weapon', 'item_weapon_wellenspeer'), 'Rüste den Wellenspeer aus. Schwallstoss macht den Schatten nass. Der Blitz im Speer trifft danach stärker.', 'Der schwarze Panzer wird klar. Mareas Schatten schwimmt einmal um ihren Panzer und legt sich ruhig unter sie. Nela flüstert: «Da bist du ja.»'],
 
   ['enc_dh_funkenmotte', 'dh_windhof', ['enemy_dh_funkenmotte'], 'dh_kupferhof'],
   ['enc_dh_windklammer', 'dh_warnmast', ['enemy_dh_windklammer'], 'dh_kupferhof'],
@@ -134,15 +134,15 @@ const encounterSeeds: EncounterSeed[] = [
 
   ['enc_rn_schattenhand', 'rn_rand_der_nacht', ['enemy_rn_schattenhand'], 'rn_rand_der_nacht', [], equipped('weapon', 'item_weapon_alvas_klinge'), 'Rüste Alvas Klinge aus. Lies linken, rechten und doppelten Griff.'],
   ['enc_rn_wandelpanzer', 'rn_sternentreppe', ['enemy_rn_wandelpanzer'], 'rn_rand_der_nacht', [], equipped('weapon', 'item_weapon_alvas_klinge'), 'Rüste Alvas Klinge auf Licht. Verteidige Feuer, Eis und Blitz.'],
-  ['enc_rn_echozwilling', 'rn_halle_der_echos', ['enemy_rn_echo_links'], 'rn_rand_der_nacht', [], equipped('weapon', 'item_weapon_alvas_klinge'), 'Kuno spricht zuerst. Höre beide Stimmen und greife dann an.'],
-  ['enc_rn_raugrim', 'rn_weltenkammer', ['enemy_rn_raugrim'], 'rn_rand_der_nacht', reward(setFlag('raugrim_faeden_getrennt')), equipped('weapon', 'item_weapon_alvas_klinge'), 'Rüste Alvas Klinge auf Licht. Verteidige schwere Züge und unterbrich Aufladungen.', 'Raugrims geliehene Gestalt fällt auseinander. Sieben Schatten warten auf die Erinnerungen, die sie nach Hause führen.']
+  ['enc_rn_echozwilling', 'rn_halle_der_echos', ['enemy_rn_echo_links'], 'rn_rand_der_nacht', [], equipped('weapon', 'item_weapon_alvas_klinge'), 'Rüste Alvas Klinge auf Licht. Ein Echo ahmt Kunos Stimme nach. Verteidige schwere Züge.'],
+  ['enc_rn_raugrim', 'rn_weltenkammer', ['enemy_rn_raugrim'], 'rn_rand_der_nacht', reward(setFlag('raugrim_faeden_getrennt')), equipped('weapon', 'item_weapon_alvas_klinge'), 'Rüste Alvas Klinge auf Licht. Verteidige schwere Züge. Lichtspur trifft Raugrims Schwäche; sie unterbricht keine Aufladung.', 'Raugrims geliehene Gestalt fällt auseinander. Sieben Schatten warten auf die Erinnerungen, die sie nach Hause führen.']
 ]
 
 const enemyName = new Map(talora2Enemies.map((enemy) => [enemy.id, enemy.name]))
 export const talora2Encounters: EncounterDefinition[] = encounterSeeds.map(([id, areaId, enemyIds, fleeAreaId, rewardEffects = [], requiredGear, gearWarning, victoryText]) => ({
   id, areaId, enemyIds, fleeAreaId, requiredGear, gearWarning,
   label: enemyIds.length > 1 ? `Stelle dich ${enemyIds.map((enemyId) => enemyName.get(enemyId)).join(' und ')}` : `Stelle dich ${enemyName.get(enemyIds[0])}`,
-  description: 'Beobachte den nächsten Zug. Du kannst vor dem ersten Treffer sicher zurückkehren.',
+  description: 'Beobachten kostet keinen Zug. Lies danach den angekündigten Angriff und prüfe dein Leben. Bei einer Flucht behältst du deine Funde.',
   victoryText: victoryText ?? `${enemyName.get(enemyIds[0])} gibt den Weg frei. Du kannst jederzeit zum Rastplatz zurückkehren.`,
   rewardEffects
 }))

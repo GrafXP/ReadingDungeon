@@ -16,10 +16,21 @@ export function PuzzlePanel({ game, puzzle, onAction }: PuzzlePanelProps) {
   const send = (controlId: string, value: string | number | boolean) => onAction({ type: 'PUZZLE_INPUT', puzzleId: puzzle.id, controlId, value })
   const order = typeof state.values.order === 'string' ? state.values.order.split('|') : []
   const path = typeof state.values.path === 'string' ? state.values.path.split(',').map(Number) : []
-  const hints = puzzle.hints ?? [puzzle.hint]
+  const hints = puzzle.hints ?? []
+  const instructions = {
+    controls: 'Wähle für jeden Regler die passende Stellung.',
+    sequence: 'Drücke die Zeichen in der gesuchten Reihenfolge. Bei einem falschen Zeichen beginnt die Folge von vorn.',
+    pairing: 'Wähle zu jedem Eintrag ein passendes Gegenstück. Jedes Gegenstück gehört zu genau einem Paar.',
+    ordering: 'Bringe die Einträge mit den Pfeilen in die gesuchte Reihenfolge. Lies von oben nach unten.',
+    grid: 'S ist der Start, Z das Ziel. Wähle jeweils das nächste freie Nachbarfeld, waagrecht oder senkrecht. × ist gesperrt. Tippe den letzten Wegschritt an, um einen Schritt zurückzugehen.',
+    reading: 'Lies den Text und wähle für jede Frage eine Antwort.',
+    weighing: 'Verteile die Gegenstände auf beide Seiten. Die Zahl am Gegenstand gibt sein Gewicht an. Auf der Ablage zählt er für keine Seite.'
+  }
 
   return <section className={`puzzle-panel puzzle-panel--${kind}`} aria-labelledby={`puzzle-${puzzle.id}`}>
     <h2 id={`puzzle-${puzzle.id}`}>{puzzle.title}</h2>
+    <p>{puzzle.hint}</p>
+    <p>{instructions[kind]}</p>
     <div className="puzzle-hints">
       {hints.map((hint, index) => <details key={hint}><summary>Hinweis {hints.length > 1 ? index + 1 : ''} ansehen</summary><p>{hint}</p></details>)}
     </div>
@@ -92,7 +103,7 @@ export function PuzzlePanel({ game, puzzle, onAction }: PuzzlePanelProps) {
       <div className="puzzle-controls">
         {puzzle.reading.prompts.map((prompt) => <div className="puzzle-control" key={prompt.id}>
           <label htmlFor={`puzzle-${puzzle.id}-${prompt.id}`}>{prompt.label}</label>
-          <select id={`puzzle-${puzzle.id}-${prompt.id}`} value={String(state.values[prompt.id])} onChange={(event) => send(prompt.id, Number(event.target.value))}>
+          <select id={`puzzle-${puzzle.id}-${prompt.id}`} value={String(state.values[prompt.id])} onChange={(event) => send(prompt.id, event.target.value === '' ? '' : Number(event.target.value))}>
             <option value="">Wort wählen</option>
             {prompt.options.map((option, index) => <option key={option} value={index}>{option}</option>)}
           </select>
@@ -104,6 +115,7 @@ export function PuzzlePanel({ game, puzzle, onAction }: PuzzlePanelProps) {
       <div className="puzzle-controls">
         {puzzle.weighing.items.map((item) => <div className="puzzle-control" key={item.id}>
           <label htmlFor={`puzzle-${puzzle.id}-${item.id}`}>{item.label}</label>
+          <span>Gewicht: {item.weight}</span>
           <select id={`puzzle-${puzzle.id}-${item.id}`} value={String(state.values[item.id])} onChange={(event) => send(item.id, event.target.value)}>
             <option value="off">Ablage</option>
             <option value="left">{puzzle.weighing!.leftLabel}</option>

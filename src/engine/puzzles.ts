@@ -18,7 +18,9 @@ export function createPuzzleState(puzzle: PuzzleDefinition): PuzzleState {
     return { kind, values: Object.fromEntries((puzzle.pairing?.left ?? []).map((item) => [item.id, ''])) }
   }
   if (kind === 'ordering') {
-    return { kind, values: { order: (puzzle.ordering?.items ?? []).map((item) => item.id).join('|') } }
+    const order = (puzzle.ordering?.items ?? []).map((item) => item.id)
+    if (order.join('|') === puzzle.ordering?.solution.join('|')) order.reverse()
+    return { kind, values: { order: order.join('|') } }
   }
   if (kind === 'grid') return { kind, values: { path: String(puzzle.grid?.start ?? 0) } }
   if (kind === 'reading') {
@@ -67,7 +69,12 @@ export function isPuzzleStateSolved(state: PuzzleState, puzzle: PuzzleDefinition
   }
   if (kind === 'weighing') {
     const weighing = puzzle.weighing
-    return Boolean(weighing && Object.entries(weighing.solution).every(([itemId, side]) => state.values[itemId] === side))
+    if (!weighing) return false
+    const target = weighing.items.filter((item) => weighing.solution[item.id] === 'left').reduce((sum, item) => sum + item.weight, 0)
+    return weighing.items.every((item) => weighing.solution[item.id] === 'off'
+      ? state.values[item.id] === 'off'
+      : state.values[item.id] === 'left' || state.values[item.id] === 'right') &&
+      ['left', 'right'].every((side) => weighing.items.filter((item) => state.values[item.id] === side).reduce((sum, item) => sum + item.weight, 0) === target)
   }
   return puzzle.controls.every((control) => state.values[control.id] === control.solution) &&
     (!puzzle.sequence || state.values.sequence === puzzle.sequence.solution.length)
@@ -120,9 +127,9 @@ export function updatePuzzleState(
   }
   if (kind === 'reading') {
     const prompt = puzzle.reading?.prompts.find((entry) => entry.id === controlId)
-    if (!prompt || typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value >= prompt.options.length || values[controlId] === value) return null
+    if (!prompt || (value !== '' && (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value >= prompt.options.length)) || values[controlId] === value) return null
     values[controlId] = value
-    return { state: { kind, values }, text: `${prompt.label}: ${prompt.options[value]}.` }
+    return { state: { kind, values }, text: `${prompt.label}: ${value === '' ? 'noch keine Antwort' : prompt.options[Number(value)]}.` }
   }
   if (kind === 'weighing') {
     const item = puzzle.weighing?.items.find((entry) => entry.id === controlId)

@@ -1,5 +1,6 @@
 import { useAppState } from '../app/AppState'
 import { activeWorld } from '../content/world'
+import { getEncounterEnemies } from '../engine/bestiary'
 
 function ownedIds(inventory: Record<string, number>, prefix: string): string[] {
   return Object.keys(inventory).filter((id) => id.startsWith(prefix) && inventory[id] > 0)
@@ -10,12 +11,13 @@ export function CollectionScreen() {
   if (!game) return null
   const mapEdges = ownedIds(game.player.inventory, 'item_quest_kartenrand_')
   const weapons = ownedIds(game.player.inventory, 'item_weapon_')
-  const totalEnemies = activeWorld.contentInventory?.enemies.length ?? activeWorld.enemies.length
+  const enemies = getEncounterEnemies(activeWorld)
+  const studied = enemies.filter((enemy) => game.studiedEnemyIds.includes(enemy.id)).length
 
   const collections = [
     { id: 'kartenraender', icon: '✦', title: 'Alvas Kartenränder', count: mapEdges.length, total: 6, description: 'Kurze Erinnerungen an Freunde, die Alva auf ihren Wegen traf.' },
-    { id: 'waffen', icon: '◆', title: 'Waffen und Werkzeuge', count: weapons.length, total: 12, description: 'Jede Region besitzt eine eigene Waffe oder eine besondere Waffenkunst.' },
-    { id: 'register', icon: '⌖', title: 'Kunos Wegbuch', count: game.studiedEnemyIds.length, total: totalEnemies, description: 'Vollständige Einträge durch kostenloses Beobachten im Kampf.' }
+    { id: 'waffen', icon: '◆', title: 'Waffen', count: weapons.length, total: activeWorld.items.filter((item) => item.weapon).length, description: 'Finde die Waffen der Regionen und lerne ihre Waffenkünste kennen.' },
+    { id: 'register', icon: '⌖', title: 'Kunos Wegbuch', count: studied, total: enemies.length, description: 'Beobachte jeden Gegner vor dem Sieg kostenlos im Kampf, um seinen Eintrag zu vervollständigen.' }
   ]
 
   return <main id="main-content" className="screen collection-screen">

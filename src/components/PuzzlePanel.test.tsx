@@ -14,6 +14,15 @@ function renderPuzzle(puzzle: PuzzleDefinition, onAction = vi.fn()) {
 }
 
 describe('generische Rätselbedienung', () => {
+  it('zeigt die Aufgabenstellung auch bei zusätzlichen, geschlossenen Hinweisen', () => {
+    const puzzle = talora2World.puzzles!.find((entry) => entry.kind === 'ordering')!
+    renderPuzzle(puzzle)
+    expect(screen.getByText(puzzle.hint)).toBeVisible()
+    expect(screen.getByText(/Bringe die Einträge mit den Pfeilen/)).toBeVisible()
+    expect(screen.queryByText(/Richtige Lösung/)).not.toBeInTheDocument()
+    expect(document.querySelectorAll('details[open]')).toHaveLength(0)
+  })
+
   it('ordnet Paare mit beschrifteten Auswahlfeldern zu', async () => {
     const user = userEvent.setup()
     const puzzle: PuzzleDefinition = { ...base, id: 'pair', kind: 'pairing', pairing: { left: [{ id: 'paket', label: 'Paket' }], right: [{ id: 'tor', label: 'Wassertor' }], solution: { paket: 'tor' } } }

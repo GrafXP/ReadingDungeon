@@ -4,7 +4,7 @@ import type {
   Requirement,
   WorldDefinition
 } from '../domain/content'
-import { getPuzzleKind } from './puzzles'
+import { createPuzzleState, getPuzzleKind, isPuzzleStateSolved } from './puzzles'
 import { requirementItemIds } from './requirements'
 
 export interface ValidationReport {
@@ -35,7 +35,7 @@ function duplicateIds(values: string[]): string[] {
 }
 
 interface SimulatedState {
-  items: Set<string>
+  items: Map<string, number>
   flags: Set<string>
   clues: Set<string>
   equippedWeaponId: string | null
@@ -45,7 +45,7 @@ interface SimulatedState {
 
 function requirementMet(requirement: Requirement | undefined, state: SimulatedState): boolean {
   if (!requirement) return true
-  if (requirement.kind === 'item') return state.items.has(requirement.itemId)
+  if (requirement.kind === 'item') return (state.items.get(requirement.itemId) ?? 0) >= (requirement.quantity ?? 1)
   if (requirement.kind === 'equipped') {
     const equipped = requirement.slot === 'weapon'
       ? state.equippedWeaponId
@@ -117,7 +117,7 @@ function graphReachabilityFrom(startAreaId: string, passages: WorldDefinition['p
 function simulateProgression(world: WorldDefinition) {
   const reachable = new Set([world.start.areaId])
   const state: SimulatedState = {
-    items: new Set(Object.entries(world.start.inventory).filter(([, count]) => count > 0).map(([id]) => id)),
+    items: new Map(Object.entries(world.start.inventory).filter(([, count]) => count > 0)),
     flags: new Set<string>(),
     clues: new Set<string>(),
     equippedWeaponId: world.start.equippedWeaponId,
@@ -133,7 +133,7 @@ function simulateProgression(world: WorldDefinition) {
     for (const areaId of [...reachable]) state.flags.add(`area_untersucht:${areaId}`)
 
     for (const interaction of world.interactions) {
-      if (completedInteractions.has(interaction.id) || !reachable.has(interaction.areaId)) continue
+      if ((completedInteractions.has(interaction.id) && !interaction.restockAfterRest) || !reachable.has(interaction.areaId)) continue
       if (!requirementMet(interaction.requirement, state) || !requirementMet(interaction.visibilityRequirement, state)) continue
       completedInteractions.add(interaction.id)
       for (const effect of interaction.effects) {
@@ -141,11 +141,20 @@ function simulateProgression(world: WorldDefinition) {
           state.clues.add(effect.clueId)
           changed = true
         }
-        if (effect.kind === 'addItem' && !state.items.has(effect.itemId)) {
-          state.items.add(effect.itemId)
+        if (effect.kind === 'addItem') {
+          const current = state.items.get(effect.itemId) ?? 0
+          // Renewable sources can be gathered again after resting. Model their
+          // available batch without accumulating an unbounded inventory.
+          const quantity = interaction.restockAfterRest ? Math.max(current, effect.quantity) : current + effect.quantity
+          state.items.set(effect.itemId, quantity)
+          if (quantity !== current) changed = true
+        }
+        if (effect.kind === 'removeItem') {
+          const remaining = (state.items.get(effect.itemId) ?? 0) - effect.quantity
+          if (remaining > 0) state.items.set(effect.itemId, remaining)
+          else state.items.delete(effect.itemId)
           changed = true
         }
-        if (effect.kind === 'removeItem' && state.items.delete(effect.itemId)) changed = true
         if (effect.kind === 'equipItem' && state.items.has(effect.itemId)) {
           const item = world.items.find((entry) => entry.id === effect.itemId)
           if (item?.kind === 'weapon') state.equippedWeaponId = item.id
@@ -175,7 +184,7 @@ function simulateProgression(world: WorldDefinition) {
       defeatedEncounters.add(encounter.id)
       changed = true
       for (const effect of encounter.rewardEffects) {
-        if (effect.kind === 'addItem') state.items.add(effect.itemId)
+        if (effect.kind === 'addItem') state.items.set(effect.itemId, (state.items.get(effect.itemId) ?? 0) + effect.quantity)
         if (effect.kind === 'removeItem') state.items.delete(effect.itemId)
         if (effect.kind === 'setFlag') state.flags.add(effect.flag)
         if (effect.kind === 'discoverClue') state.clues.add(effect.clueId)
@@ -323,6 +332,7 @@ export function validateWorld(world: WorldDefinition, options: WorldValidationOp
       if (!weighing || ids.length < 2 || duplicateIds(ids).length || weighing.items.some((item) => !Number.isInteger(item.weight) || item.weight < 1) || solution.length !== ids.length || solution.some(([id, side]) => !ids.includes(id) || !['left', 'right', 'off'].includes(side)) || leftWeight !== rightWeight) errors.push(`Rätsel ${puzzle.id} hat eine ungültige Waage.`)
     }
     if (puzzle.hints && (puzzle.hints.length !== 3 || puzzle.hints.some((hint) => !hint.trim()))) errors.push(`Rätsel ${puzzle.id} braucht drei vollständige Hinweise.`)
+    if (isPuzzleStateSolved(createPuzzleState(puzzle), puzzle)) errors.push(`Rätsel ${puzzle.id} ist bereits in der Startstellung gelöst.`)
   }
 
   for (const area of world.areas) {

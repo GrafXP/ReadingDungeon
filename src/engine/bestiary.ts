@@ -10,6 +10,11 @@ export interface EnemyKnowledge {
   immunities: string
 }
 
+export function getEncounterEnemies(world: WorldDefinition): EnemyDefinition[] {
+  const ids = new Set(world.encounters.flatMap((encounter) => encounter.enemyIds))
+  return world.enemies.filter((enemy) => ids.has(enemy.id))
+}
+
 function damageList(types: EnemyDefinition['weakTo']): string {
   return types?.length
     ? types.map((type) => `${DAMAGE_TYPE_ICONS[type]} ${DAMAGE_TYPE_LABELS[type]}`).join(', ')

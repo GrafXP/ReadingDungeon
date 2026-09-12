@@ -1,4 +1,7 @@
 import type { AreaDefinition, PassageDefinition, RegionDefinition, Requirement } from '../../domain/content'
+import { talora2AreaVariants, talora2Inspections } from './talora2Narrative'
+import { talora2Interactions } from './talora2Interactions'
+import { talora2Items } from './talora2Items'
 
 export const talora2Regions: RegionDefinition[] = [
   { id: 'sonnenmark', name: 'Sonnenmark' },
@@ -20,18 +23,18 @@ const areaSeeds: AreaSeed[] = [
   ['sm_kartenstube', 'Kartenstube', 'sonnenmark', true, 'Alvas grosse Karte zeigt Blatt, Welle und Flügel. Kunos Wegbuch liegt offen daneben.'],
   ['sm_drei_wege_platz', 'Drei-Wege-Platz', 'sonnenmark', false, 'Drei helle Wegweiser zeigen zum Wald, zum Meer und zu den Bergen.'],
   ['sm_tempelgarten', 'Tempelgarten', 'sonnenmark', false, 'Kleine Glaslichter stehen zwischen weichem Moos. Ein loser Kartenrand steckt unter einer Bank.'],
-  ['sm_morgen_tempel', 'Tempel der Morgenklinge', 'sonnenmark', false, 'Die Morgenklinge ruht weiter im Bannschloss. Tessa bewahrt Alvas leichtere Klinge für dich auf.'],
+  ['sm_morgen_tempel', 'Tempel der Morgenklinge', 'sonnenmark', false, 'Ein Bild zeigt die Morgenklinge im Bannschloss. Tessa erklärt dir, warum sie dort bleiben muss.'],
   ['sm_tor_sechs_zeichen', 'Tor der sechs Zeichen', 'sonnenmark', false, 'Sechs leere Zeichen warten im Stein. Drei gehören alten Freunden, drei neuen.'],
 
   ['ww_foersterhaus', 'Försterhaus', 'wisperwald', true, 'Lio hat Suppe gekocht. Vor dem Haus führen kleine Tierspuren in den stillen Wald.'],
   ['ww_mooslichtung', 'Mooslichtung', 'wisperwald', false, 'Hase, Igel und Reh haben verschiedene Spuren hinterlassen. Ihre Verstecke sind ganz nah.'],
   ['ww_gluehgarten', 'Glühgarten', 'wisperwald', false, 'Drei Glasblüten leuchten verschieden hell. Schwarze Ranken meiden ihr Licht.'],
-  ['ww_alte_baumschule', 'Alte Baumschule', 'wisperwald', false, 'Junge Bäume wachsen in langen Reihen. Unter Mondmoos liegen Astholz und ein Kartenrand.'],
+  ['ww_alte_baumschule', 'Alte Baumschule', 'wisperwald', false, 'Junge Bäume wachsen in langen Reihen. Weisse Bänder markieren Astholz und Rankenseil.'],
   ['ww_rankentor', 'Rankentor', 'wisperwald', false, 'Dicke Ranken halten das Tor zu. Tiefe Kerben warnen vor einem Rammstoss.'],
   ['ww_wipfelsteg', 'Wipfelsteg', 'wisperwald', false, 'Der Steg schwankt über den Bäumen. Ein Schild erklärt Kapphieb und Aufladung.'],
-  ['ww_wurzelbruecke', 'Wurzelbrücke', 'wisperwald', false, 'Feste Wurzeln bilden einen Weg. Einige Lücken brauchen Astholz und Rankenseil.'],
-  ['ww_wurzelheiligtum', 'Wurzelheiligtum', 'wisperwald', false, 'Arbor wartet zwischen alten Wurzeln. Sein Schatten steht allein vor der Dornenkrone.'],
-  ['ww_dornenkrone', 'Dornenkrone', 'wisperwald', false, 'Schwarze Dornen umringen ein grünes Blattzeichen. Arbor ruft leise nach seinem Schatten.'],
+  ['ww_wurzelbruecke', 'Wurzelbrücke', 'wisperwald', false, 'Zwischen morschen Wurzeln sind feste Tritte verborgen. Markiere einen sicheren Weg über die Brücke.'],
+  ['ww_wurzelheiligtum', 'Wurzelheiligtum', 'wisperwald', false, 'Der Hirsch Arbor wartet zwischen alten Wurzeln. Sein Schatten steht allein vor der Dornenkrone.'],
+  ['ww_dornenkrone', 'Dornenkrone', 'wisperwald', false, 'Schwarze Dornen umringen ein grünes Blattzeichen. Arbor und sein Schatten wachen wieder gemeinsam über die Wege.'],
 
   ['sk_muschelhafen', 'Muschelhafen', 'spiegelkueste', true, 'Nela bindet ein Boot fest. Drei Hafenlichter zeigen Ebbe, Mitte und Flut.'],
   ['sk_schleusensteg', 'Schleusensteg', 'spiegelkueste', false, 'Drei Tore halten das Wasser an. Pfeile zeigen, wie es wieder fliessen soll.'],
@@ -40,8 +43,8 @@ const areaSeeds: AreaSeed[] = [
   ['sk_quellinsel', 'Quellinsel', 'spiegelkueste', false, 'Klares Wasser spritzt über flache Steine. Nasse Gegner fürchten Eis und Blitz.'],
   ['sk_muscheltor', 'Muscheltor', 'spiegelkueste', false, 'Ein grosser Panzer versperrt das Tor. Beim Hebezug öffnet sich eine helle Stelle.'],
   ['sk_schilfkanal', 'Schilfkanal', 'spiegelkueste', false, 'Schwemmholz und feste Wasserfasern treiben im ruhigen Kanal.'],
-  ['sk_gezeitentempel', 'Gezeitentempel', 'spiegelkueste', false, 'Marea wartet im flachen Wasser. Ihr Schatten zieht Kreise vor dem letzten Weg.'],
-  ['sk_perlenbecken', 'Perlenbecken', 'spiegelkueste', false, 'Dunkle Perlen liegen im stillen Becken. Im Wasser fehlen Namen und Gesichter.'],
+  ['sk_gezeitentempel', 'Gezeitentempel', 'spiegelkueste', false, 'Die Schildkröte Marea wartet im flachen Wasser. Ihr Schatten zieht Kreise vor dem letzten Weg.'],
+  ['sk_perlenbecken', 'Perlenbecken', 'spiegelkueste', false, 'Dunkle Perlen liegen im stillen Becken. Marea und ihr Schatten spiegeln sich wieder darin.'],
 
   ['dh_kupferhof', 'Kupferhof', 'donnerhoehe', true, 'Tavi arbeitet unter einem sicheren Kupferdach. Blitzschutz hängt gut sichtbar an der Wand.'],
   ['dh_windhof', 'Windhof', 'donnerhoehe', false, 'Bänder zeigen die Windrichtung. Feste Halteseile führen durch den Hof.'],
@@ -51,7 +54,7 @@ const areaSeeds: AreaSeed[] = [
   ['dh_wolkenbruecke', 'Wolkenbrücke', 'donnerhoehe', false, 'Ein kleiner Gleiter hängt schief über den Wolken. Segel und Korb müssen gleich schwer sein.'],
   ['dh_kristallmine', 'Kristallmine', 'donnerhoehe', false, 'Werkzeugstahl glitzert zwischen blauen Kristallen. Hier kann ein schwerer Hammer entstehen.'],
   ['dh_gewitterturm', 'Gewitterturm', 'donnerhoehe', false, 'Schwarze Federn laden sich am Turm auf. Voltaro bleibt zum Schutz aller am Boden.'],
-  ['dh_adlerhorst', 'Adlerhorst', 'donnerhoehe', false, 'Der Horst liegt frei über den Wolken. Ein Flügelzeichen wartet auf Voltaros Schatten.'],
+  ['dh_adlerhorst', 'Adlerhorst', 'donnerhoehe', false, 'Der Horst liegt frei über den Wolken. Voltaros Flügelzeichen leuchtet über dem Horst.'],
 
   ['vp_weglager', 'Weglager', 'verborgene_wege', true, 'Ein kleines Feuer brennt zwischen drei alten Wegen. Tessas Truhe steht neben einem freien Bett.'],
   ['vp_wegkreuz', 'Wegkreuz', 'verborgene_wege', false, 'Blatt, Welle und Flügel sind in helle Bodensteine geritzt.'],
@@ -69,38 +72,38 @@ const areaSeeds: AreaSeed[] = [
   ['fi_kuehlrinne', 'Kühlrinne', 'funkeninsel', false, 'Klares Wasser wartet hinter einem kleinen Schieber. Es kann den heissen Weg kühlen.'],
   ['fi_ofenring', 'Ofenring', 'funkeninsel', false, 'Eine Glutwalze rollt um den Ofen. Ein freier Weg führt zurück zum Hafen.'],
   ['fi_glutbruecke', 'Glutbrücke', 'funkeninsel', false, 'Die Brücke ist heiss, aber stabil. Ein Schild fragt nach Mantel und Eis.'],
-  ['fi_aschennest_vorraum', 'Vorraum des Aschennests', 'funkeninsel', false, 'Drei kurze Sätze erklären Feuer, Nass und Eis. Hinter der Tür piepst ein Ei.'],
-  ['fi_feuervogelnest', 'Feuervogelnest', 'funkeninsel', false, 'Ein junges Ei liegt unter schwarzer Asche. Kunos Schatten hält die heisse Decke hoch.'],
+  ['fi_aschennest_vorraum', 'Vorraum des Aschennests', 'funkeninsel', false, 'Nimas Tafel erklärt Feuerschutz, Eis und den schweren Kühlstoss. Hinter der Tür piepst ein Ei.'],
+  ['fi_feuervogelnest', 'Feuervogelnest', 'funkeninsel', false, 'Der junge Feuervogel sitzt in seinem warmen Nest. Kunos Schatten schützt ihn vor fallender Asche.'],
 
   ['fs_uferhaus', 'Uferhaus', 'frostsee', true, 'Eli zeigt eine Sternkarte. Er hat einen blauen Stern über dem See gesehen.'],
   ['fs_waermestube', 'Wärmestube', 'frostsee', true, 'Decken und warmer Saft stehen bereit. Ein Schnittmuster zeigt das Wärmewams.'],
   ['fs_sternarchiv', 'Sternarchiv', 'frostsee', false, 'Elis ganzer Bericht liegt auf einem niedrigen Pult. Kein Wort ist durchgestrichen.'],
-  ['fs_firnufer', 'Firnufer', 'frostsee', false, 'Weiche Firnfelle hängen in alten Wärmenetzen. Niemand braucht sie mehr.'],
+  ['fs_firnufer', 'Firnufer', 'frostsee', false, 'Eli hat weiche Firnfelle aus Winterwolle gewebt. Zwei hängen zum Mitnehmen bereit.'],
   ['fs_kaltperlengrotte', 'Kaltperlengrotte', 'frostsee', false, 'Blaue Perlen liegen im trockenen Teil der Grotte. Ihre Kälte kribbelt in der Hand.'],
   ['fs_klarglassteg', 'Klarglassteg', 'frostsee', false, 'Der klare Steg spiegelt Sterne und Wolken. Ein Kartenrand liegt unter Glas.'],
-  ['fs_sternsaal', 'Sternsaal', 'frostsee', false, 'Ein blauer Stern zeigt morgens nach links. Elis Zeichnung liegt daneben.'],
-  ['fs_spiegelhof', 'Spiegelhof', 'frostsee', false, 'Drei Spiegel sind mit Reif bedeckt. Feuer löst die gefrorenen Gelenke.'],
-  ['fs_eistreppe', 'Eistreppe', 'frostsee', false, 'Ein Reifjäger bewacht nur den Aufstieg. Das warme Ufer bleibt frei.'],
+  ['fs_sternsaal', 'Sternsaal', 'frostsee', false, 'Elis Zeichnung zeigt morgens einen blauen Stern links über dem See. Elis Zeichnung liegt daneben.'],
+  ['fs_spiegelhof', 'Spiegelhof', 'frostsee', false, 'Reif glitzert auf drei Spiegeln. Ihre Stellräder warten auf die Zahlen aus Elis Karte.'],
+  ['fs_eistreppe', 'Eistreppe', 'frostsee', false, 'Hinter dem Reifjäger führt die Treppe zum Kuppelgang. Der Rückweg zum warmen Ufer bleibt frei.'],
   ['fs_kuppelgang', 'Kuppelgang', 'frostsee', false, 'Kalter Wind drückt durch den Gang. Ein Schild erinnert an das Wärmewams.'],
   ['fs_sternennest_vorraum', 'Vorraum des Sternennests', 'frostsee', false, 'Bilder zeigen Spiegelpanzer, Feuer und einen heilenden Zug.'],
-  ['fs_sternenkuppel', 'Sternenkuppel', 'frostsee', false, 'Unter dem klaren Eis schwimmen gestohlene Schatten. Der blaue Stern steht darüber.'],
+  ['fs_sternenkuppel', 'Sternenkuppel', 'frostsee', false, 'Die befreiten Sternenschatten schweben über dem klaren Eis. Der blaue Stern steht darüber.'],
 
   ['lm_stelzendorf', 'Stelzendorf', 'laternenmoor', true, 'Pavo und Luma warten auf einem trockenen Steg. Der Laternenfuchs ist fort.'],
   ['lm_laternenhaus', 'Laternenhaus', 'laternenmoor', true, 'Luma baut Blenden und Lampen. Stoff, Proviant und kurze Baupläne liegen bereit.'],
   ['lm_torfgarten', 'Torfgarten', 'laternenmoor', false, 'Helle Inseln tragen feste Moorfasern. Dunkle Inseln bleiben unberührt.'],
   ['lm_schilfpfad', 'Schilfpfad', 'laternenmoor', false, 'Kleine Pfoten, eine Schleifspur und falsche Doppelkerben kreuzen den Pfad.'],
-  ['lm_schwarzteich', 'Schwarzteich', 'laternenmoor', false, 'Natürliches Schattenlicht liegt ruhig auf dem Wasser. Dunkelglas glänzt am Ufer.'],
+  ['lm_schwarzteich', 'Schwarzteich', 'laternenmoor', false, 'Im Dämmerlicht liegt der Teich ruhig vor dir. Dunkelglas glänzt am Ufer.'],
   ['lm_blendengang', 'Blendengang', 'laternenmoor', false, 'Helle Blenden schneiden Wege in den Nebel. Versteckte Flügel werfen kurze Schatten.'],
   ['lm_nebelsteg', 'Nebelsteg', 'laternenmoor', false, 'Ring, Kerbe und Doppelstrich stehen auf drei Pfählen.'],
   ['lm_lichtinsel', 'Lichtinsel', 'laternenmoor', false, 'Ein fester Lichtkreis liegt über dem Moor. Hier kann nichts lange verborgen bleiben.'],
-  ['lm_schattenwehr', 'Schattenwehr', 'laternenmoor', false, 'Eine Dunstschwinge bewacht den Hinweg. Zwei sichere Wege führen zurück.'],
+  ['lm_schattenwehr', 'Schattenwehr', 'laternenmoor', false, 'Hinter der Dunstschwinge beginnt der dunkle Nachtpfad. Der Rückweg zur Lichtinsel bleibt frei.'],
   ['lm_nachtpfad', 'Nachtpfad', 'laternenmoor', false, 'Schwarzer Nebel liegt auf dem Pfad. Eine Tafel nennt Umhang, Licht und Heilzug.'],
-  ['lm_schwarze_laterne', 'Schwarze Laterne', 'laternenmoor', false, 'Der echte Fuchs sitzt hinter einer riesigen Laterne. Viele falsche Spuren enden hier.'],
+  ['lm_schwarze_laterne', 'Schwarze Laterne', 'laternenmoor', false, 'Der gerettete Fuchs sitzt unter Pavos Mantel vor der erloschenen Laterne. Viele falsche Spuren enden hier.'],
 
   ['rn_rand_der_nacht', 'Rand der Nacht', 'reich_der_nacht', true, 'Tessa hat ein Licht und frisches Apfelbrot aufgestellt. Alle offenen Wege bleiben hinter dir.'],
   ['rn_sternentreppe', 'Sternentreppe', 'reich_der_nacht', false, 'Jede Stufe zeigt den nächsten Schlag. Feuer, Eis und Blitz leuchten klar.'],
-  ['rn_halle_der_echos', 'Halle der Echos', 'reich_der_nacht', false, 'Kunos eigene Worte kommen aus zwei Richtungen zurück. Sein Schatten wartet still.'],
-  ['rn_weltenkammer', 'Weltenkammer', 'reich_der_nacht', false, 'Raugrims Fäden führen zu sieben Schatten. Jeder erinnert sich an einen gemeinsamen Weg.']
+  ['rn_halle_der_echos', 'Halle der Echos', 'reich_der_nacht', false, 'Ein einzelnes Echo antwortet mit Kunos eigener Stimme. Sein Schatten wartet still.'],
+  ['rn_weltenkammer', 'Weltenkammer', 'reich_der_nacht', false, 'Raugrims letzte Fäden greifen nach sieben Schatten. Gemeinsame Erinnerungen können seinen Griff lösen.']
 ]
 
 const regionById = new Map(talora2Regions.map((region) => [region.id, region]))
@@ -122,7 +125,13 @@ export const talora2Areas: AreaDefinition[] = areaSeeds.map(([id, name, regionId
     mapPosition: { x: origin.x + column * 72, y: origin.y + row * 72 },
     firstDescription: text,
     revisitDescription: `${name} ist dir nun vertraut. ${text}`,
-    inspectText: text
+    inspectText: talora2Inspections[id],
+    variants: talora2AreaVariants[id] ?? talora2Interactions
+      .filter((entry) => entry.areaId === id && entry.id.endsWith('_abschliessen'))
+      .flatMap((entry) => {
+        const effect = entry.effects.find((effect) => effect.kind === 'setFlag')
+        return effect?.kind === 'setFlag' ? [{ requirement: { kind: 'flag' as const, flag: effect.flag }, description: entry.resultText, inspectText: entry.resultText }] : []
+      })
   }
 })
 
@@ -214,10 +223,29 @@ const passageSeeds: PassageSeed[] = [
 ]
 
 const areaNames = new Map(talora2Areas.map((area) => [area.id, area.name]))
+function requirementText(requirement: Requirement): string {
+  if (requirement.kind === 'all' || requirement.kind === 'any') return requirement.requirements.map(requirementText).join(requirement.kind === 'all' ? ' Ausserdem: ' : ' Oder: ')
+  if (requirement.kind === 'item' || requirement.kind === 'equipped') {
+    const name = talora2Items.find((entry) => entry.id === requirement.itemId)?.name ?? requirement.itemId
+    return requirement.kind === 'equipped' ? `Lege diese Ausrüstung an: ${name}.` : `Du brauchst: ${name}.`
+  }
+  if (requirement.kind === 'flag') {
+    if (requirement.flag.startsWith('area_untersucht:')) return `Untersuche diesen Ort: ${areaNames.get(requirement.flag.slice('area_untersucht:'.length))}.`
+    const rescues: Record<string, string> = {
+      arbors_schatten_zurueck: 'Hilf Arbor im Wurzelheiligtum.', mareas_schatten_zurueck: 'Hilf Marea im Gezeitentempel.', voltaros_schatten_zurueck: 'Hilf Voltaro am Gewitterturm.',
+      feuervogel_gerettet: 'Rette den Feuervogel hinter dem Vorraum des Aschennests.', sternenschatten_gerettet: 'Rette die Sternenschatten hinter dem Vorraum des Sternennests.', laternenfuchs_gerettet: 'Rette den Laternenfuchs hinter dem Nachtpfad.',
+      schattenzipfel_beruhigt: 'Beruhige den Schattenzipfel auf dem Festplatz.', fuchsspur_gelesen: 'Beruhige den Dunstmolch auf dem Schilfpfad; dorthin kommst du über den Torfgarten.'
+    }
+    if (rescues[requirement.flag]) return rescues[requirement.flag]
+    const source = talora2Interactions.find((entry) => entry.effects.some((effect) => effect.kind === 'setFlag' && effect.flag === requirement.flag))
+    if (source) return `${areaNames.get(source.areaId)}: ${source.label}.`
+  }
+  return 'Lies die Hinweise im Aufgabenbuch.'
+}
 export const talora2Passages: PassageDefinition[] = passageSeeds.map(([id, fromAreaId, toAreaId, requirement, guardEncounterId, shortcut, blockedText]) => ({
   id, fromAreaId, toAreaId,
-  labelFrom: `${shortcut ? 'Nimm die Abkürzung' : 'Gehe'} zu ${areaNames.get(toAreaId)}`,
-  labelTo: `${shortcut ? 'Nimm die Abkürzung' : 'Gehe'} zu ${areaNames.get(fromAreaId)}`,
+  labelFrom: `${shortcut ? 'Abkürzung' : 'Weiter'}: ${areaNames.get(toAreaId)}`,
+  labelTo: `${shortcut ? 'Abkürzung' : 'Weiter'}: ${areaNames.get(fromAreaId)}`,
   requirement, guardEncounterId, shortcut,
-  blockedText: blockedText ?? (guardEncounterId ? 'Ein Gegner bewacht diesen Hinweg. Der Weg zum Rastplatz bleibt frei.' : 'Dieser Weg öffnet sich später in der Geschichte.')
+  blockedText: blockedText ?? [requirement ? requirementText(requirement) : '', guardEncounterId ? 'Besiege auch den Gegner, der diesen Hinweg bewacht. Du kannst vorher deine Ausrüstung prüfen und zurückgehen.' : ''].filter(Boolean).join(' ')
 }))

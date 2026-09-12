@@ -22,8 +22,8 @@ export const talora2World: WorldDefinition = {
       lead: '{playerName}, Kuno hat deinen Namen nicht vergessen.',
       story: [
         'Seit dem Abenteuer mit der Morgenklinge sind Taloras Wege wieder offen. Arbor wacht im Wald, Marea erzählt am Meer, und Voltaro fliegt über den Bergen.',
-        'Beim Lichterfest geschieht etwas Seltsames. Die Schatten von Taloras Freunden lösen sich und laufen fort. Auch Kunos Schatten verschwindet.',
-        'Raugrim sitzt noch im Bannschloss. Doch ein Rest seiner Stimme lockt ängstliche Schatten zu sich. Du und Kuno wollt sie nach Hause bringen.'
+        'Heute beginnt das Lichterfest. Kuno, dein Freund mit dem Messingdeckel und der Kompassnadel, hat sich darauf gefreut. Doch sein Schatten zeigt zur Tür, obwohl Kuno stillsteht.',
+        'Raugrim sitzt noch im Bannschloss. Die Morgenklinge und die drei Wächtersiegel halten ihn dort fest. Trotzdem kommt ein Flüstern aus dem alten Tor. Gemeinsam mit Kuno willst du herausfinden, was geschieht.'
       ],
       basics: [
         { title: 'Lies den nächsten Zug', text: 'Gegner zeigen vorher, was sie tun. Bei einem schweren Zug hilft Verteidigen.' },

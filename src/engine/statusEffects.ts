@@ -5,7 +5,7 @@ const wards = (['physical', 'fire', 'ice', 'lightning', 'light', 'shadow'] as Da
   id: `schutz:${type}`,
   name: `${type === 'physical' ? 'Wucht' : type === 'fire' ? 'Feuer' : type === 'ice' ? 'Eis' : type === 'lightning' ? 'Blitz' : type === 'light' ? 'Licht' : 'Schatten'}schutz`,
   icon: '◈',
-  description: 'Halbiert den nächsten passenden Treffer.',
+  description: 'Halbiert den nächsten passenden Treffer, bevor die Schutzdauer endet.',
   target: 'player',
   modifiers: { protectsFrom: [type], damageMultiplier: 0.5 },
   maximumDuration: 3
