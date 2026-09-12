@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { EnemyDefinition, ItemDefinition } from '../domain/content'
 import { resolveEnemyHit, resolvePlayerHit } from './damage'
-import { KANTARA_STATUS_EFFECTS } from './statusEffects'
+import { TALORA_STATUS_EFFECTS } from './statusEffects'
 
 const weapon: NonNullable<ItemDefinition['weapon']> = {
   minDamage: 4,
@@ -43,7 +43,7 @@ describe('sichtbare Trefferrechnung', () => {
       roll: 4,
       weaponMode: 'lightning',
       enemyEffects: [{ id: 'nass', remainingEnemyTurns: 3 }],
-      statusEffects: KANTARA_STATUS_EFFECTS
+      statusEffects: TALORA_STATUS_EFFECTS
     })
     expect(hit.parts[1]).toMatchObject({ type: 'lightning', result: 6, relationship: 'weak' })
     expect(hit.damage).toBe(8)
@@ -53,7 +53,7 @@ describe('sichtbare Trefferrechnung', () => {
     const hit = resolvePlayerHit({
       weapon: { ...weapon, elemental: undefined }, weaponName: 'Klinge', enemy: enemy({ defense: 4 }), roll: 4,
       enemyEffects: [{ id: 'betaeubt', remainingEnemyTurns: 1 }, { id: 'offener_riss', remainingEnemyTurns: 1 }],
-      playerEffects: [{ id: 'benebelt', remainingEnemyTurns: 3 }], statusEffects: KANTARA_STATUS_EFFECTS
+      playerEffects: [{ id: 'benebelt', remainingEnemyTurns: 3 }], statusEffects: TALORA_STATUS_EFFECTS
     })
     expect(hit.damage).toBe(5)
     expect(hit.text).toContain('+ 2 durch Zustand − 1 durch Zustand = 5 Schaden')

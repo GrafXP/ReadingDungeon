@@ -76,6 +76,7 @@ export function AppLayout() {
           {hasAdventure && <NavLink to="/register" className={navClass}>Register</NavLink>}
           {hasAdventure && <NavLink to="/sammlung" className={navClass}>Sammlung</NavLink>}
           <NavLink to="/einstellungen" className={navClass}>Einstellungen</NavLink>
+          {import.meta.env.DEV && <NavLink to="/debug" className={navClass}>Debug</NavLink>}
         </nav>
       </div>
       <Outlet />

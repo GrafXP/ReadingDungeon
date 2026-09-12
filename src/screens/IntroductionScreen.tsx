@@ -43,7 +43,7 @@ export function IntroductionScreen() {
           <div><h2 id="first-step-title">Dein erster Schritt</h2><p>{introduction.firstStep}</p></div>
         </aside>
 
-        <Link className="button button--primary introduction-continue" to="/spiel">Weiter zum Kurierhof</Link>
+        <Link className="button button--primary introduction-continue" to="/spiel">Weiter nach Sonnenwacht</Link>
       </article>
     </main>
   )

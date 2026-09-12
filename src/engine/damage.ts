@@ -14,7 +14,7 @@ export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
   ice: 'Eis',
   lightning: 'Blitz',
   light: 'Licht',
-  shadow: 'Dämmer'
+  shadow: 'Schatten'
 }
 
 export const DAMAGE_TYPE_ICONS: Record<DamageType, string> = {

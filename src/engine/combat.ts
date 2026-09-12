@@ -350,7 +350,16 @@ export function useWeaponSkill(save: GameSave, world: WorldDefinition): CombatTr
       effects: addStatusEffect(view.combatant.effects, definition, skill.effect.duration)
     }
     prepared = { ...prepared, activeCombat: replaceCombatant(prepared.activeCombat!, view.targetIndex, affected) }
-    return resolveEnemyTurn(prepared, view.enemy, view.move, false, `${skill.name} setzt ${definition.name} ein.`, world)
+    const stopsPreparedMove = Boolean(definition.modifiers?.groundsEnemy && (view.move.kind === 'heal' || view.move.kind === 'charge'))
+    return resolveEnemyTurn(
+      prepared,
+      view.enemy,
+      view.move,
+      false,
+      `${skill.name} setzt ${definition.name} ein.`,
+      world,
+      stopsPreparedMove ? `${view.enemy.name} verliert ${view.move.name}.` : undefined
+    )
   }
   if (skill.effect.kind === 'ward') {
     const definition = getStatusDefinition(world, skill.effect.effectId)
@@ -363,6 +372,14 @@ export function useWeaponSkill(save: GameSave, world: WorldDefinition): CombatTr
       }
     }
     return resolveEnemyTurn(prepared, view.enemy, view.move, false, `${skill.name} errichtet ${definition.name}.`, world)
+  }
+  const opened = vulnerabilityEffect(world, 2)
+  if (opened) {
+    const affected = {
+      ...view.combatant,
+      effects: [...view.combatant.effects.filter((effect) => effect.id !== opened.id), opened]
+    }
+    prepared = { ...prepared, activeCombat: replaceCombatant(prepared.activeCombat!, view.targetIndex, affected) }
   }
   return resolveEnemyTurn(prepared, view.enemy, view.move, false, `${skill.name} unterbricht die angekündigte Bewegung.`, world, `${view.enemy.name} verliert ${view.move.name}.`)
 }

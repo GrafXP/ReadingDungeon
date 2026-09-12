@@ -18,7 +18,7 @@ export interface ValidationReport {
 }
 
 export interface WorldValidationOptions {
-  /** Allows the Phase 1 Kantara scaffold to be loaded before its later content exists. */
+  /** Allows an intentionally incomplete development world to skip reachability checks. */
   allowIncomplete?: boolean
 }
 

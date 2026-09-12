@@ -103,8 +103,11 @@ p { line-height: 1.62; }
 .save-state { opacity: .78; }
 .save-state--error { color: #ffd1c9; opacity: 1; }
 .app-chrome { position: sticky; z-index: 30; top: 0; }
-.main-nav { position: relative; z-index: 20; display: flex; min-height: 54px; align-items: stretch; justify-content: center; gap: .25rem; padding: 0 .6rem; border-bottom: 1px solid var(--line); background: rgba(255, 250, 240, .94); backdrop-filter: blur(12px); }
-.nav-link { display: grid; min-height: 52px; place-items: center; padding: .5rem clamp(.65rem, 3vw, 1.4rem); color: var(--ink-soft); text-decoration: none; font-weight: 700; border-bottom: 3px solid transparent; }
+.main-nav { position: relative; z-index: 20; display: flex; min-height: 54px; align-items: stretch; justify-content: flex-start; gap: .25rem; padding: 0 .6rem; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; border-bottom: 1px solid var(--line); background: rgba(255, 250, 240, .94); backdrop-filter: blur(12px); }
+.nav-link { display: grid; flex: 0 0 auto; min-height: 52px; place-items: center; padding: .5rem clamp(.65rem, 3vw, 1.4rem); color: var(--ink-soft); text-decoration: none; font-weight: 700; white-space: nowrap; border-bottom: 3px solid transparent; }
+/* Auto margins center the links while they fit but collapse once the bar overflows, so no link is clipped out of scroll reach. */
+.nav-link:first-child { margin-left: auto; }
+.nav-link:last-child { margin-right: auto; }
 .nav-link--active { color: var(--forest); border-bottom-color: var(--gold); }
 
 .title-screen { position: relative; display: grid; min-height: 100vh; grid-template-columns: minmax(0, 1fr); place-items: center; overflow: hidden; padding: 3rem 1rem 5rem; color: white; background: linear-gradient(155deg, #102f2a 0%, #1c5146 58%, #347767 100%); }
@@ -163,16 +166,15 @@ p { line-height: 1.62; }
 /* Only a slim mood strip: sun, horizon and region landmark stay, the text gets the rest. */
 .play-screen { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: stretch; }
 .atmosphere-panel { position: relative; min-height: 620px; overflow: hidden; border-radius: 24px 0 0 24px; background: linear-gradient(#82c8bd 0%, #cce2c5 49%, #8aac76 50%, #31594b 100%); box-shadow: var(--shadow); }
-.atmosphere-panel--kesselbrueck { background: linear-gradient(#91c9d0 0%, #d9e6d2 42%, #b99168 43%, #4f5f58 100%); }
-.atmosphere-panel--blaetterdaecher { background: linear-gradient(#87c8a0 0%, #d5e6ad 38%, #598354 39%, #214c3a 100%); }
-.atmosphere-panel--kanaldelta { background: linear-gradient(#78c3cf 0%, #d8ebd9 40%, #80a889 41%, #246b78 68%, #174f62 100%); }
-.atmosphere-panel--sturmwerft { background: linear-gradient(#60788c 0%, #c6d0d5 41%, #a58c6c 42%, #3f4a48 100%); }
-.atmosphere-panel--wechselgaenge { background: linear-gradient(#776a59 0%, #b59e75 35%, #5f5548 36%, #263b3a 100%); }
+.atmosphere-panel--sonnenmark { background: linear-gradient(#8fcfd0 0%, #f4df9b 42%, #8aae72 43%, #31594b 100%); }
 .atmosphere-panel--spiegelkueste { background: linear-gradient(#76c6c5 0%, #c7ece4 43%, #ddce9f 44%, #568c83 67%, #245a64 100%); }
 .atmosphere-panel--wisperwald { background: linear-gradient(#80b6a1 0%, #c8dcae 38%, #5f8a5b 39%, #173f34 100%); }
 .atmosphere-panel--donnerhoehe { background: linear-gradient(#617c91 0%, #b9c9cf 42%, #917e65 43%, #3d433e 100%); }
-.atmosphere-panel--verbindungswege { background: linear-gradient(#8a765d 0%, #c4aa7d 38%, #665841 39%, #243c38 100%); }
-.atmosphere-panel--jenseits_des_tors { background: radial-gradient(circle at 70% 18%, #d1b35d 0 3px, transparent 4px), radial-gradient(circle at 26% 31%, #e7ddaa 0 2px, transparent 3px), linear-gradient(#111827, #302a49 58%, #171d28); }
+.atmosphere-panel--verborgene_wege { background: linear-gradient(#8a765d 0%, #c4aa7d 38%, #665841 39%, #243c38 100%); }
+.atmosphere-panel--funkeninsel { background: linear-gradient(#de8b62 0%, #f4cf7a 41%, #7a4938 42%, #342f35 100%); }
+.atmosphere-panel--frostsee { background: linear-gradient(#8bc8df 0%, #e9f5f2 45%, #a8d6df 46%, #326a83 100%); }
+.atmosphere-panel--laternenmoor { background: linear-gradient(#677e73 0%, #b5c99a 40%, #596b50 41%, #213f3c 100%); }
+.atmosphere-panel--reich_der_nacht { background: radial-gradient(circle at 70% 18%, #d1b35d 0 3px, transparent 4px), radial-gradient(circle at 26% 31%, #e7ddaa 0 2px, transparent 3px), linear-gradient(#111827, #302a49 58%, #171d28); }
 .sun { position: absolute; top: 26px; left: 50%; width: 26px; height: 26px; border-radius: 50%; background: #f9d877; box-shadow: 0 0 24px rgba(249,216,119,.7); transform: translateX(-50%); }
 .hills { position: absolute; right: -70%; bottom: 33%; left: -70%; height: 13%; border-radius: 50% 55% 0 0; background: #6e9e75; transform: rotate(-4deg); }
 .hills--front { bottom: 16%; left: -110%; height: 15%; background: #31594b; transform: rotate(8deg); }
@@ -189,15 +191,14 @@ p { line-height: 1.62; }
 .atmosphere-panel--spiegelkueste .region-landmark b { top: 0; right: 42px; width: 22px; height: 22px; border-radius: 50%; background: #f5c95e; box-shadow: 0 0 22px #fff1a8; }
 .atmosphere-panel--donnerhoehe .region-landmark i { inset: 45px 15px 0; clip-path: polygon(50% 0,100% 100%,0 100%); background: #5c554b; }
 .atmosphere-panel--donnerhoehe .region-landmark b { top: 0; left: 52px; width: 12px; height: 92px; transform: rotate(18deg); background: #e9cb5f; clip-path: polygon(35% 0,100% 0,60% 45%,95% 45%,0 100%,34% 52%,0 52%); }
-.atmosphere-panel--jenseits_des_tors .region-landmark i { inset: 0 28px; border: 8px solid #d1b35d; border-bottom: 0; border-radius: 55px 55px 0 0; box-shadow: 0 0 28px rgba(225,194,99,.3); }
-.atmosphere-panel--kanaldelta .region-landmark i { right: 12px; bottom: 0; width: 92px; height: 85px; border: 9px solid #e5d6a8; border-radius: 50%; background: rgba(46,111,119,.45); }
-.atmosphere-panel--kanaldelta .region-landmark b { right: 50px; bottom: 0; width: 12px; height: 120px; background: #715e43; }
-.atmosphere-panel--kanaldelta .region-landmark span { right: 0; bottom: 12px; width: 120px; height: 14px; border-radius: 8px; background: #d7c58c; transform: rotate(-8deg); }
-.atmosphere-panel--sturmwerft .region-landmark i { inset: 50px 16px 0; clip-path: polygon(50% 0,100% 100%,0 100%); background: #655d52; }
-.atmosphere-panel--sturmwerft .region-landmark b { top: 0; left: 54px; width: 12px; height: 105px; background: #f0d55e; clip-path: polygon(35% 0,100% 0,60% 45%,95% 45%,0 100%,34% 52%,0 52%); }
-.atmosphere-panel--wechselgaenge .region-landmark i { inset: 24px 8px 0; border: 10px solid #d4bf87; border-bottom: 0; border-radius: 52px 52px 0 0; }
-.atmosphere-panel--wechselgaenge .region-landmark b, .atmosphere-panel--wechselgaenge .region-landmark span { bottom: 18px; left: 16px; width: 88px; height: 9px; border-radius: 8px; background: #403b34; transform: rotate(18deg); }
-.atmosphere-panel--wechselgaenge .region-landmark span { transform: rotate(-18deg); }
+.atmosphere-panel--reich_der_nacht .region-landmark i { inset: 0 28px; border: 8px solid #d1b35d; border-bottom: 0; border-radius: 55px 55px 0 0; box-shadow: 0 0 28px rgba(225,194,99,.3); }
+.atmosphere-panel--verborgene_wege .region-landmark i { inset: 24px 8px 0; border: 10px solid #d4bf87; border-bottom: 0; border-radius: 52px 52px 0 0; }
+.atmosphere-panel--verborgene_wege .region-landmark b, .atmosphere-panel--verborgene_wege .region-landmark span { bottom: 18px; left: 16px; width: 88px; height: 9px; border-radius: 8px; background: #403b34; transform: rotate(18deg); }
+.atmosphere-panel--verborgene_wege .region-landmark span { transform: rotate(-18deg); }
+.atmosphere-panel--funkeninsel .region-landmark i { inset: 35px 25px 0; border-radius: 50% 50% 10px 10px; background: #6b3c2f; box-shadow: inset 0 0 0 12px #da744b; }
+.atmosphere-panel--frostsee .region-landmark i { inset: 55px 5px 0; clip-path: polygon(50% 0,100% 100%,0 100%); background: #dff4f4; }
+.atmosphere-panel--laternenmoor .region-landmark i { right: 48px; bottom: 0; width: 18px; height: 140px; background: #504630; }
+.atmosphere-panel--laternenmoor .region-landmark b { top: 8px; left: 29px; width: 62px; height: 62px; border-radius: 50%; background: #e5c967; box-shadow: 0 0 24px #f1de8e; }
 /* In the strip the caption runs bottom to top; the box needs a definite height, or the rotated text spills out. */
 .atmosphere-info { position: absolute; top: 4rem; right: 0; bottom: 1rem; left: 0; display: flex; align-items: center; justify-content: flex-start; gap: .6rem; color: white; text-shadow: 0 1px 4px rgba(8,32,26,.55); writing-mode: vertical-rl; transform: rotate(180deg); }
 .atmosphere-info p { margin: 0; font-size: .7rem; font-weight: 700; letter-spacing: .12em; line-height: 1.2; text-transform: uppercase; }
@@ -562,9 +563,61 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
 .reminder-empty h2 { margin-bottom: .25rem; }
 .reminder-empty p { margin: 0; }
 
+.debug-screen { width: min(100% - 2rem, 1380px); }
+.debug-tabs { display: flex; overflow-x: auto; gap: .4rem; margin: 0 0 1rem; padding: .45rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,250,240,.75); scrollbar-width: thin; }
+.debug-tabs button { min-height: 44px; flex: 0 0 auto; border: 1px solid transparent; border-radius: 9px; padding: .45rem .75rem; color: var(--ink-soft); background: transparent; cursor: pointer; font-weight: 700; }
+.debug-tabs button[aria-current='page'] { color: white; background: var(--forest); }
+.debug-search { display: grid; grid-template-columns: minmax(8rem, 14rem) minmax(12rem, 1fr) auto; align-items: center; gap: .65rem; margin-bottom: 1rem; padding: .7rem .85rem; border-radius: 12px; background: #edf2e7; }
+.debug-search > label { font-weight: 700; }
+.debug-search input { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 9px; padding: .55rem .75rem; background: white; }
+.debug-search small { color: var(--ink-soft); }
+.debug-overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin: 1rem 0; }
+.debug-overview-grid button { display: grid; min-height: 112px; align-content: center; gap: .2rem; border: 1px solid #d8c89f; border-radius: 14px; padding: .8rem; color: var(--forest); background: var(--paper); box-shadow: 0 7px 18px rgba(44,64,51,.08); cursor: pointer; text-align: left; }
+.debug-overview-grid strong { color: #916515; font-size: 1.75rem; }
+.debug-overview-grid span { font-weight: 700; }
+.debug-welcome, .debug-sandbox { margin: 1rem 0; padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid #d8c89f; border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow); }
+.debug-welcome > pre, .debug-meta pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.debug-note { padding: .65rem .8rem; border-left: 4px solid var(--gold); background: #fff4d5; }
+.debug-list { display: grid; gap: .65rem; }
+.debug-entry { overflow: hidden; border: 1px solid #d8cbae; border-radius: 12px; background: var(--paper); }
+.debug-entry > summary { display: flex; min-height: 52px; align-items: center; gap: .6rem; padding: .7rem .85rem; cursor: pointer; }
+.debug-entry > summary strong { min-width: 0; overflow-wrap: anywhere; }
+.debug-entry > summary::marker { color: var(--gold); }
+.debug-entry[open] > summary { border-bottom: 1px solid var(--line); background: #f5edd9; }
+.debug-entry-body { padding: 1rem; }
+.debug-entry-body h3 { margin: 1rem 0 .35rem; font-size: 1rem; }
+.debug-entry-body > p:last-child { margin-bottom: 0; }
+.debug-id { display: inline-block; min-width: 0; margin-left: auto; border-radius: 6px; padding: .15rem .38rem; color: #654a19; background: #f0dfb7; font: 600 .72rem ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+.debug-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin: 0 0 1rem; }
+.debug-meta div { min-width: 0; padding: .55rem .65rem; border-radius: 8px; background: #f3f0e5; }
+.debug-meta dt { color: var(--ink-soft); font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+.debug-meta dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
+.debug-subcard { margin: .65rem 0; padding: .75rem .85rem; border-left: 3px solid var(--water); border-radius: 0 9px 9px 0; background: #edf5ee; }
+.debug-subcard p:last-child, .debug-subcard h3:last-child { margin-bottom: 0; }
+.debug-compact-list { margin: .35rem 0; padding-left: 1.25rem; }
+.debug-region-strip { display: flex; overflow-x: auto; gap: .55rem; padding: .2rem 0 .55rem; }
+.debug-region-strip > span { display: flex; min-width: 12rem; align-items: center; gap: .5rem; padding: .6rem .7rem; border-radius: 9px; background: #e8f1e4; }
+.debug-region-strip .debug-id { margin-left: auto; }
+.debug-solution { margin: .8rem 0; border: 1px dashed #b89c5a; border-radius: 9px; padding: .65rem .75rem; background: #fffbef; }
+.debug-solution summary { min-height: 42px; cursor: pointer; font-weight: 700; }
+.debug-solution pre { max-width: 100%; overflow-x: auto; margin-bottom: 0; white-space: pre-wrap; }
+.debug-sandbox { border-width: 2px; border-color: var(--gold); }
+.debug-sandbox-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.debug-sandbox-heading h2 { margin-bottom: .5rem; }
+.debug-sandbox .puzzle-panel, .debug-sandbox .combat-panel { margin: .8rem 0; }
+.debug-item-tray { display: flex; flex-wrap: wrap; gap: .45rem; margin: .65rem 0; padding: .7rem; border-radius: 10px; background: #e9f4ed; }
+.debug-item-tray button { min-height: 42px; border: 1px solid var(--line); border-radius: 8px; padding: .35rem .65rem; background: white; cursor: pointer; }
+.debug-result { padding: 1rem; border-radius: 10px; background: #e9f4ed; }
+.debug-result p { margin: .35rem 0 0; white-space: pre-line; }
+.debug-move-list { display: grid; gap: .5rem; margin: .4rem 0 0; padding: 0; list-style: none; }
+.debug-move-list li { padding: .6rem .7rem; border-radius: 8px; background: rgba(255,255,255,.65); }
+.debug-move-list li > span { display: block; margin-top: .2rem; color: var(--ink-soft); font-size: .8rem; }
+.debug-move-list p { margin: .25rem 0; }
+.debug-move-list small { display: block; }
+.debug-systems { display: grid; gap: 1.2rem; }
+.debug-systems > section > h2 { margin-bottom: .6rem; }
+
 @media (max-width: 760px) {
-  .main-nav { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
-  .nav-link { flex: 0 0 auto; }
   .play-screen { display: block; }
   .atmosphere-panel { min-height: 54px; border-radius: 18px 18px 0 0; }
   .sun { top: 50%; left: 18px; width: 20px; height: 20px; transform: translateY(-50%); }
@@ -586,6 +639,10 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
   .item-details { padding: 1.2rem; }
   .item-illustration { width: 74px; height: 74px; float: right; margin: 0 0 .8rem .8rem; border-radius: 20px; font-size: 2rem; }
   .gear-comparison ul { grid-template-columns: 1fr; }
+  .debug-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .debug-search { grid-template-columns: 1fr; }
+  .debug-meta { grid-template-columns: 1fr; }
+  .debug-sandbox-heading { flex-direction: column; }
 }
 
 @media (max-width: 520px) {
@@ -594,8 +651,7 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
   .app-header { min-height: 58px; }
   .brand { font-size: 1rem; }
   .brand > span:last-child { display: none; }
-  .main-nav { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
-  .nav-link { flex: 0 0 auto; min-height: 48px; padding-right: .7rem; padding-left: .7rem; font-size: .84rem; }
+  .nav-link { min-height: 48px; padding-right: .7rem; padding-left: .7rem; font-size: .84rem; }
   .title-screen { padding-top: 2rem; }
   .introduction-heading { grid-template-columns: 1fr; }
   .introduction-emblem { width: 68px; height: 68px; }
@@ -619,6 +675,10 @@ blockquote { position: relative; margin: 1.2rem 0; padding: .9rem 1.1rem; border
   .reminder-step-heading { align-items: flex-start; flex-direction: column; gap: .2rem; }
   .quest-overview { align-items: flex-start; }
   .quest-compass { width: 48px; height: 48px; }
+  .debug-screen { width: min(100% - 1rem, 1380px); }
+  .debug-overview-grid { grid-template-columns: 1fr; }
+  .debug-entry > summary { align-items: flex-start; flex-direction: column; }
+  .debug-entry > summary .debug-id { margin-left: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

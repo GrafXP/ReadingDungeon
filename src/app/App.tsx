@@ -13,6 +13,7 @@ import { TitleScreen } from '../screens/TitleScreen'
 import { BestiaryScreen } from '../screens/BestiaryScreen'
 import { CollectionScreen } from '../screens/CollectionScreen'
 import { IntroductionScreen } from '../screens/IntroductionScreen'
+import { DebugScreen } from '../screens/DebugScreen'
 import { useAppState } from './AppState'
 
 function AdventureRoute({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ export function App() {
           <Route path="/register" element={<AdventureRoute><BestiaryScreen /></AdventureRoute>} />
           <Route path="/sammlung" element={<AdventureRoute><CollectionScreen /></AdventureRoute>} />
           <Route path="/einstellungen" element={<SettingsScreen />} />
+          <Route path="/debug" element={<DebugScreen />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

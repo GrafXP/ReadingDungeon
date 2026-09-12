@@ -16,7 +16,7 @@ import {
   type AppSettings,
   type TextSize
 } from '../domain/settings'
-import { kantaraWorld } from '../content/world/kantaraWorld'
+import { talora2World } from '../content/world/talora2World'
 import { evaluateRequirement } from '../engine/requirements'
 import { isPuzzleStateValid } from '../engine/puzzles'
 
@@ -225,7 +225,7 @@ function validateEquippedItem(id: string | null, slot: 'weapon' | 'body' | 'tali
   if (slot === 'weapon' ? !item?.weapon : item?.armor?.slot !== slot) throw new DataValidationError(`Der ausgerüstete Gegenstand ${id} passt nicht auf den Platz ${slot}.`)
 }
 
-export function migrateAndValidateGameSave(value: unknown, world: WorldDefinition = kantaraWorld): GameSave {
+export function migrateAndValidateGameSave(value: unknown, world: WorldDefinition = talora2World): GameSave {
   const original = requireRecord(value, 'Spielstand')
   const campaignId = typeof original.campaignId === 'string' ? original.campaignId : null
   if (campaignId !== world.campaignId) throw new CampaignMismatchError(campaignId, world.campaignId)
@@ -373,7 +373,7 @@ export function settingsOrDefaults(value: unknown): AppSettings {
   return validateSettings(value)
 }
 
-export function parseSaveImport(json: string, world: WorldDefinition = kantaraWorld): GameSave {
+export function parseSaveImport(json: string, world: WorldDefinition = talora2World): GameSave {
   let parsed: unknown
   try {
     parsed = JSON.parse(json)
@@ -388,7 +388,7 @@ export function parseSaveImport(json: string, world: WorldDefinition = kantaraWo
   return migrateAndValidateGameSave(parsed, world)
 }
 
-export function createSaveExport(save: GameSave, world: WorldDefinition = kantaraWorld): string {
+export function createSaveExport(save: GameSave, world: WorldDefinition = talora2World): string {
   const adventure = migrateAndValidateGameSave(save, world)
   return JSON.stringify({
     format: 'textdungeon-save',

@@ -6,7 +6,7 @@ import { createSaveExport, parseSaveImport } from '../storage/validation'
 import { getInventoryActions } from './actions'
 import { getEnemyKnowledge } from './bestiary'
 import { reduceGame } from './reducer'
-import { KANTARA_STATUS_EFFECTS } from './statusEffects'
+import { TALORA_STATUS_EFFECTS } from './statusEffects'
 
 function phase2TestWorld(): WorldDefinition {
   const world: WorldDefinition = {
@@ -26,8 +26,8 @@ function phase2TestWorld(): WorldDefinition {
   }
   const legacyStatuses = world.statusEffects ?? []
   world.statusEffects = [
-    ...KANTARA_STATUS_EFFECTS,
-    ...legacyStatuses.filter((status) => !KANTARA_STATUS_EFFECTS.some((entry) => entry.id === status.id))
+    ...TALORA_STATUS_EFFECTS,
+    ...legacyStatuses.filter((status) => !TALORA_STATUS_EFFECTS.some((entry) => entry.id === status.id))
   ]
   const weapon = world.items.find((item) => item.id === 'reiseschwert')!
   weapon.weapon!.skill = {
@@ -65,7 +65,7 @@ describe('Waffenkunst, Zugarten und Register', () => {
     expect(loaded.activeCombat?.combatants[0].effects[0].id).toBe('brennt')
   })
 
-  it('unterbricht charge, blockiert shield und führt heal aus', () => {
+  it('unterbricht charge, öffnet shield und führt heal aus', () => {
     const world = phase2TestWorld()
     const enemy = world.enemies.find((entry) => entry.id === 'pfuetzenhopser')!
     enemy.movesByPhase[1] = [
@@ -78,10 +78,10 @@ describe('Waffenkunst, Zugarten und Register', () => {
     const fighting = begin(world)
     const interrupted = reduceGame(fighting, { type: 'USE_SKILL' }, world)
     expect(interrupted.player.life).toBe(fighting.player.life)
-    expect(interrupted.activeCombat).toMatchObject({ round: 2, combatants: [{ announcedMoveId: 'schild', stance: 'guarded' }] })
-    const blocked = reduceGame(interrupted, { type: 'ATTACK' }, world)
-    expect(blocked.activeCombat).toMatchObject({ combatants: [{ life: 30, announcedMoveId: 'heilung' }] })
-    const damaged = { ...blocked, activeCombat: { ...blocked.activeCombat!, combatants: [{ ...blocked.activeCombat!.combatants[0], life: 20 }] } }
+    expect(interrupted.activeCombat).toMatchObject({ round: 2, combatants: [{ announcedMoveId: 'schild', stance: 'vulnerable' }] })
+    const opened = reduceGame(interrupted, { type: 'ATTACK' }, world)
+    expect(opened.activeCombat).toMatchObject({ combatants: [{ life: 25, announcedMoveId: 'heilung' }] })
+    const damaged = { ...opened, activeCombat: { ...opened.activeCombat!, combatants: [{ ...opened.activeCombat!.combatants[0], life: 20 }] } }
     const healed = reduceGame(damaged, { type: 'DEFEND' }, world)
     expect(healed.activeCombat?.combatants[0].life).toBe(25)
   })

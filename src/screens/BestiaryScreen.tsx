@@ -13,7 +13,7 @@ export function BestiaryScreen() {
 
   return <main id="main-content" className="screen collection-screen">
     <header className="screen-heading">
-      <div><p className="eyebrow">Klicks Notizen</p><h1>Register</h1></div>
+      <div><p className="eyebrow">Kunos Wegbuch</p><h1>Register</h1></div>
       <span className="count-badge">{game.studiedEnemyIds.length}/{total} Gegner · {ruleCards.length}/{totalRules} Regeln</span>
     </header>
     <p className="screen-intro">Begegnete Gegner erscheinen hier. Beobachte sie im Kampf kostenlos, um ihre vollständigen Merksätze freizuschalten.</p>

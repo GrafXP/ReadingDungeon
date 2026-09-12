@@ -1,28 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { kantaraWorld, phase2World } from '../content/world'
+import { campaignWorld as phase2World } from '../content/world/campaignWorld'
+import { talora2World } from '../content/world/talora2World'
 import type { WorldDefinition } from '../domain/content'
 import { validateWorld } from './worldValidator'
 
 describe('Weltvalidator', () => {
-  it('macht alle noch fehlenden Phase-0-Inhaltsgruppen nach der offenen ersten Hälfte sichtbar', () => {
-    const scaffold = validateWorld(kantaraWorld, { allowIncomplete: true })
+  it('bestätigt den vollständigen Talora-II-Produktionsumfang', () => {
+    const report = validateWorld(talora2World)
 
-    expect(scaffold.valid).toBe(true)
-    expect(scaffold.completionReachable).toBe(false)
-    expect(scaffold.contentGaps).toEqual([
-      'Orte: 39 von 78 fehlen.',
-      'Verbindungen: 52 von 108 fehlen.',
-      'Gegenstände: 38 von 85 fehlen.',
-      'Interaktionen: 58 von 110 fehlen.',
-      'Rätsel: 7 von 18 fehlen.',
-      'Gegnertypen: 19 von 39 fehlen.',
-      'Begegnungen: 24 von 48 fehlen.'
-    ])
-    expect(scaffold.missingContentIds.areas).not.toContain('kb_sortierhalle')
-    expect(scaffold.missingContentIds.areas).not.toContain('kb_kurierhof')
-    expect(scaffold.missingContentIds.items).not.toContain('item_weapon_astbeil')
-    expect(scaffold.missingContentIds.items).not.toContain('item_weapon_kurierklinge')
-    expect(validateWorld(kantaraWorld).valid).toBe(false)
+    expect(talora2World.areas).toHaveLength(78)
+    expect(talora2World.passages).toHaveLength(108)
+    expect(talora2World.puzzles).toHaveLength(18)
+    expect(talora2World.enemies).toHaveLength(39)
+    expect(talora2World.encounters).toHaveLength(48)
+    expect(report.reachableAreaIds.toSorted()).toEqual(talora2World.areas.map((area) => area.id).toSorted())
+    expect(report.errors).toEqual([])
+    expect(report.valid).toBe(true)
+    expect(report.contentGaps).toEqual([])
+    expect(report.completionReachable).toBe(true)
+    expect(report.reachableAreaIds).toHaveLength(78)
   })
 
   it('bestätigt die vollständige, offene und lösbare Kampagnenwelt', () => {

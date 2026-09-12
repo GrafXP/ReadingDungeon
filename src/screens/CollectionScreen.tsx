@@ -8,14 +8,14 @@ function ownedIds(inventory: Record<string, number>, prefix: string): string[] {
 export function CollectionScreen() {
   const { game } = useAppState()
   if (!game) return null
-  const shards = ownedIds(game.player.inventory, 'item_shard_')
-  const marks = ownedIds(game.player.inventory, 'item_marke_')
+  const mapEdges = ownedIds(game.player.inventory, 'item_quest_kartenrand_')
+  const weapons = ownedIds(game.player.inventory, 'item_weapon_')
   const totalEnemies = activeWorld.contentInventory?.enemies.length ?? activeWorld.enemies.length
 
   const collections = [
-    { id: 'splitter', icon: '✦', title: 'Resonanzsplitter', count: shards.length, total: 7, description: 'Verborgene Splitter aus den bewohnten Regionen Kantaras.' },
-    { id: 'marken', icon: '◆', title: 'Alte Liefermarken', count: marks.length, total: 8, description: 'Kurze Geschichten über frühere Wege zwischen den Regionen.' },
-    { id: 'register', icon: '⌖', title: 'Klicks Register', count: game.studiedEnemyIds.length, total: totalEnemies, description: 'Vollständige Einträge durch kostenloses Beobachten im Kampf.' }
+    { id: 'kartenraender', icon: '✦', title: 'Alvas Kartenränder', count: mapEdges.length, total: 6, description: 'Kurze Erinnerungen an Freunde, die Alva auf ihren Wegen traf.' },
+    { id: 'waffen', icon: '◆', title: 'Waffen und Werkzeuge', count: weapons.length, total: 12, description: 'Jede Region besitzt eine eigene Waffe oder eine besondere Waffenkunst.' },
+    { id: 'register', icon: '⌖', title: 'Kunos Wegbuch', count: game.studiedEnemyIds.length, total: totalEnemies, description: 'Vollständige Einträge durch kostenloses Beobachten im Kampf.' }
   ]
 
   return <main id="main-content" className="screen collection-screen">

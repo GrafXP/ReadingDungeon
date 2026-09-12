@@ -1,11 +1,8 @@
 import { assertWorldValid } from '../../engine/worldValidator'
-import { kantaraWorld } from './kantaraWorld'
+import { talora2World } from './talora2World'
 
-// Phase 4 intentionally keeps the outer regions and finale incomplete.
-// Structural references remain sound; the inventory report keeps those later
-// content gaps visible until their implementation phases.
-assertWorldValid(kantaraWorld, { allowIncomplete: true })
+assertWorldValid(talora2World)
 
-export const activeWorld = kantaraWorld
+export const activeWorld = talora2World
 export { campaignWorld, campaignWorld as phase2World } from './campaignWorld'
-export { kantaraWorld }
+export { talora2World }

@@ -25,7 +25,7 @@ async function putStoredAdventure(page: Page, value: unknown) {
   }, value)
 }
 
-test('lädt einen vorhandenen Talora-Spielstand nie still als Kantara', async ({ page }) => {
+test('lädt einen Spielstand aus dem ersten Talora-Abenteuer nie still als Talora II', async ({ page }) => {
   const legacy = createNewGame('Talora-Kind', campaignWorld)
   legacy.player.inventory.morgenklinge = 1
   legacy.flags.push('morgenklinge_erweckt')
@@ -36,7 +36,7 @@ test('lädt einen vorhandenen Talora-Spielstand nie still als Kantara', async ({
 
   await expect(page.getByRole('heading', { name: 'Dein Spielstand braucht Hilfe' })).toBeVisible()
   await expect(page.getByRole('alert')).toContainText('talora')
-  await expect(page.getByRole('alert')).toContainText('kantara')
+  await expect(page.getByRole('alert')).toContainText('talora2')
   await expect(page.getByLabel('Wie heisst du?')).toHaveCount(0)
 
   await page.getByRole('link', { name: 'Speicherverwaltung öffnen' }).click()
@@ -52,12 +52,12 @@ test('lädt einen vorhandenen Talora-Spielstand nie still als Kantara', async ({
   expect(storedCampaign).toMatchObject({ campaignId: 'talora', flags: ['morgenklinge_erweckt'] })
 })
 
-test('weist einen Talora-Import zurück und behält das laufende Kantara-Abenteuer', async ({ page }) => {
+test('weist einen Import aus dem ersten Abenteuer zurück und behält Talora II', async ({ page }) => {
   await page.goto('/')
-  await page.getByLabel('Wie heisst du?').fill('Kantara-Kind')
+  await page.getByLabel('Wie heisst du?').fill('Talora-II-Kind')
   await page.getByRole('button', { name: 'Abenteuer starten' }).click()
-  await page.getByRole('link', { name: 'Weiter zum Kurierhof' }).click()
-  await expect(page.getByRole('heading', { name: 'Kurierhof' })).toBeVisible()
+  await page.getByRole('link', { name: 'Weiter nach Sonnenwacht' }).click()
+  await expect(page.getByRole('heading', { name: 'Sonnenwacht' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Einstellungen' }).click()
   await page.getByLabel('Spielstand importieren', { exact: true }).setInputFiles({
@@ -67,11 +67,11 @@ test('weist einen Talora-Import zurück und behält das laufende Kantara-Abenteu
   })
 
   await expect(page.getByRole('alert')).toContainText('talora')
-  await expect(page.getByRole('alert')).toContainText('kantara')
+  await expect(page.getByRole('alert')).toContainText('talora2')
   await expect(page.getByRole('button', { name: 'Import bestätigen' })).toHaveCount(0)
-  await expect(page.locator('.save-summary')).toContainText('Kantara-Kind')
-  await expect(page.locator('.save-summary')).toContainText('Kurierhof')
+  await expect(page.locator('.save-summary')).toContainText('Talora-II-Kind')
+  await expect(page.locator('.save-summary')).toContainText('Sonnenwacht')
 
   await page.reload()
-  await expect(page.locator('.save-summary')).toContainText('Kantara-Kind')
+  await expect(page.locator('.save-summary')).toContainText('Talora-II-Kind')
 })

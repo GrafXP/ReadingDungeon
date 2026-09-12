@@ -3,7 +3,7 @@ import type { ActiveEffect } from '../domain/game'
 
 const wards = (['physical', 'fire', 'ice', 'lightning', 'light', 'shadow'] as DamageType[]).map((type): StatusEffectDefinition => ({
   id: `schutz:${type}`,
-  name: `${type === 'physical' ? 'Wucht' : type === 'fire' ? 'Feuer' : type === 'ice' ? 'Eis' : type === 'lightning' ? 'Blitz' : type === 'light' ? 'Licht' : 'Dämmer'}schutz`,
+  name: `${type === 'physical' ? 'Wucht' : type === 'fire' ? 'Feuer' : type === 'ice' ? 'Eis' : type === 'lightning' ? 'Blitz' : type === 'light' ? 'Licht' : 'Schatten'}schutz`,
   icon: '◈',
   description: 'Halbiert den nächsten passenden Treffer.',
   target: 'player',
@@ -11,7 +11,7 @@ const wards = (['physical', 'fire', 'ice', 'lightning', 'light', 'shadow'] as Da
   maximumDuration: 3
 }))
 
-export const KANTARA_STATUS_EFFECTS: StatusEffectDefinition[] = [
+export const TALORA_STATUS_EFFECTS: StatusEffectDefinition[] = [
   { id: 'brennt', name: 'Brennt', icon: '✹', description: 'Verliert drei Runden lang je 2 Leben.', target: 'enemy', perTurn: { damage: 2, damageType: 'fire' }, maximumDuration: 3 },
   { id: 'gefroren', name: 'Gefroren', icon: '❄', description: 'Überspringt die nächste Bewegung.', target: 'enemy', modifiers: { skipEnemyTurn: true }, maximumDuration: 1 },
   { id: 'betaeubt', name: 'Betäubt', icon: '✦', description: 'Hat eine Runde lang keine Panzerung.', target: 'enemy', modifiers: { enemyDefenseDelta: -999 }, maximumDuration: 1 },

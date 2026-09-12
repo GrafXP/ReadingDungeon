@@ -1,7 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { GameSave } from '../domain/game'
 import type { WorldDefinition } from '../domain/content'
-import { kantaraWorld } from '../content/world/kantaraWorld'
+import { talora2World } from '../content/world/talora2World'
 import type { AppSettings } from '../domain/settings'
 import {
   migrateAndValidateGameSave,
@@ -47,7 +47,7 @@ export class GameRepository {
   private readonly dbPromise: Promise<IDBPDatabase<ReadingDungeonDatabase>>
   private writeQueue: Promise<unknown> = Promise.resolve()
 
-  constructor(databaseName = 'readingdungeon', private readonly world: WorldDefinition = kantaraWorld) {
+  constructor(databaseName = 'readingdungeon', private readonly world: WorldDefinition = talora2World) {
     this.dbPromise = openDB<ReadingDungeonDatabase>(databaseName, DATABASE_VERSION, {
       upgrade(database) {
         if (!database.objectStoreNames.contains('adventures')) {

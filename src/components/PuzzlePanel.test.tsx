@@ -1,15 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { kantaraWorld } from '../content/world'
+import { talora2World } from '../content/world'
 import type { PuzzleDefinition } from '../domain/content'
 import { createNewGame } from '../domain/game'
 import { PuzzlePanel } from './PuzzlePanel'
 
-const base = { areaId: 'kb_kurierhof', interactionId: 'int_kb_grundausruestung', title: 'Übung', hint: 'Lies.', controls: [] as PuzzleDefinition['controls'] }
+const base = { areaId: 'sm_kartenstube', interactionId: 'int_sm_schattenkarte_abschliessen', title: 'Übung', hint: 'Lies.', controls: [] as PuzzleDefinition['controls'] }
 
 function renderPuzzle(puzzle: PuzzleDefinition, onAction = vi.fn()) {
-  render(<PuzzlePanel game={createNewGame('Mira', kantaraWorld)} puzzle={puzzle} onAction={onAction} />)
+  render(<PuzzlePanel game={createNewGame('Mira', talora2World)} puzzle={puzzle} onAction={onAction} />)
   return onAction
 }
 
